@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: ai-agent-hyc
+  profiles:
+    # 本地默认启用 local；上传/CI 可覆盖：SPRING_PROFILES_ACTIVE=prod
+    default: local
+  ai:
+    # ollama：LoveApp 使用本地模型；改回 dashscope 可继续调用云端通义千问
+    model:
+      chat: dashscope
+    ollama:
+      base-url: http://127.0.0.1:11434
+      chat:
+        options:
+          model: qwen3-14b-local:latest
+    dashscope:
+      # 真实 Key 写在 application-local.yml，或设置环境变量
+      api-key: ${AI_DASHSCOPE_API_KEY:}
+      chat:
+        options:
+          # qwen-turbo / qwen-plus / qwen-max
+          model: qwen-plus
+          temperature: 0.7
+          top-p: 0.8
+
+# LangChain4j + DashScope（通义千问）
+# 文档：https://docs.langchain4j.dev/integrations/language-models/dashscope/
+langchain4j:
+  community:
+    dashscope:
+      chat-model:
+        api-key: ${AI_DASHSCOPE_API_KEY:}
+        model-name: qwen-plus
+        temperature: 0.7
+
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+# springdoc-openapi
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.hc.aiagenthyc.controller
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+# 日志级别
+logging:
+  level:
+    com.hc.aiagenthyc.advisor.MyLoggerAdvisor: INFO
