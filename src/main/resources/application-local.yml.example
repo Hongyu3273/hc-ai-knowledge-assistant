@@ -1,0 +1,17 @@
+# 本地配置模板（可提交到 GitHub）
+# 复制本文件为 application-local.yml 后填写真实 API Key：
+#   cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
+spring:
+  ai:
+    dashscope:
+      api-key: sk-your-dashscope-api-key
+      chat:
+        options:
+          model: qwen-plus
+
+langchain4j:
+  community:
+    dashscope:
+      chat-model:
+        api-key: sk-your-dashscope-api-key
+        model-name: qwen-plus

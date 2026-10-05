@@ -1,0 +1,10 @@
+package com.hc.aiagenthyc.demo.invoke;
+
+/**
+ * 本地 API Key 模板（可提交到 GitHub）。
+ * 复制为 TestApiKey.java 后填写真实 Key：
+ *   cp TestApiKey.java.example TestApiKey.java
+ */
+public interface TestApiKey {
+    String API_KEY = "sk-your-dashscope-api-key";
+}

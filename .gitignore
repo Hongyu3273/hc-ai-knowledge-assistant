@@ -4,6 +4,12 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Local secrets (do not push) ###
+**/application-local.yml
+**/application-local.yaml
+**/application-local.properties
+**/TestApiKey.java
+
 ### STS ###
 .apt_generated
 .classpath
