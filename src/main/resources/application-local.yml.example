@@ -1,17 +1,25 @@
-# 本地配置模板（可提交到 GitHub）
-# 复制本文件为 application-local.yml 后填写真实 API Key：
+# Local configuration template (safe to commit).
+# Copy this file to application-local.yml, then use environment variables for real API keys:
 #   cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
 spring:
   ai:
     dashscope:
-      api-key: sk-your-dashscope-api-key
+      api-key: ${AI_DASHSCOPE_API_KEY:}
       chat:
         options:
           model: qwen-plus
+
+# Gemini uses a Google AI Studio API key. Set enabled to true and provide GEMINI_API_KEY.
+app:
+  love:
+    model: ${LOVE_APP_MODEL:dashscope}
+  gemini:
+    enabled: false
+    api-key: ${GEMINI_API_KEY:}
 
 langchain4j:
   community:
     dashscope:
       chat-model:
-        api-key: sk-your-dashscope-api-key
+        api-key: ${AI_DASHSCOPE_API_KEY:}
         model-name: qwen-plus

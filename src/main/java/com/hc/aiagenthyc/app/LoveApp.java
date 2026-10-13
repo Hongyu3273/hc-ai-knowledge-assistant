@@ -1,82 +1,129 @@
 package com.hc.aiagenthyc.app;
 
-import lombok.extern.slf4j.Slf4j;
+import com.hc.aiagenthyc.model.ModelRoute;
+
+import com.hc.aiagenthyc.advisor.VerifyAdvisor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.hc.aiagenthyc.app.model.LoveChatRequest;
+import com.hc.aiagenthyc.app.model.LoveReport;
+import com.hc.aiagenthyc.app.model.LoveReportRequest;
+import com.hc.aiagenthyc.app.prompt.LovePromptTemplates;
+import com.hc.aiagenthyc.app.service.ChatRequestValidator;
+import com.hc.aiagenthyc.app.service.MultimodalMessageAssembler;
+import com.hc.aiagenthyc.common.error.ChatException;
+import com.hc.aiagenthyc.common.error.ErrorCode;
+import com.hc.aiagenthyc.config.ChatMemoryConfiguration;
+import com.hc.aiagenthyc.memory.ConversationExecutor;
+import com.hc.aiagenthyc.model.ModelCatalog;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.MessageWindowChatMemory;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-
-@Component
-@Slf4j
+/** 恋爱助手用例入口：统一模型选择、媒体上下文和成功后的会话提交。 */
+@Service
 public class LoveApp {
+    private final Map<String, ModelRoute> clients;
+    private final ObjectMapper objectMapper;
+    private final ModelCatalog catalog;
+    private final ChatMemory memory;
+    private final LovePromptTemplates templates;
+    private final ChatRequestValidator validator;
+    private final MultimodalMessageAssembler assembler;
+    private final ConversationExecutor conversations;
 
-    private static final String SYSTEM_PROMPT = "扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。" +
-            "围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；" +
-            "恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。" +
-            "引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。";
-
-    private final ChatClient chatClient;
-
-
-    public LoveApp(@Qualifier("dashScopeChatModel") ChatModel dashScopeChatModel) {
-        //创建基于内存的对话记忆
-        ChatMemory chatMemory = MessageWindowChatMemory.builder()
-                .maxMessages(10)
-                .build();
-        chatClient = ChatClient.builder(dashScopeChatModel)
-                .defaultSystem(SYSTEM_PROMPT)
-                .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(chatMemory).build()
-                        //自定义拦截器，按需开启
-                        //, new MyLoggerAdvisor()
-                        //, new ReReadingAdvisor()
-                )
-                .build();
+    public LoveApp(ModelCatalog catalog,
+                   @Qualifier(ChatMemoryConfiguration.CHAT_MEMORY_BEAN_NAME) ChatMemory memory,
+                   LovePromptTemplates templates, ChatRequestValidator validator,
+                   MultimodalMessageAssembler assembler, ConversationExecutor conversations, ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+        this.catalog = catalog;
+        this.memory = memory;
+        this.templates = templates;
+        this.validator = validator;
+        this.assembler = assembler;
+        this.conversations = conversations;
+        Map<ChatClient, ChatClient> businessClients = new IdentityHashMap<>();
+        this.clients = catalog.routes().entrySet().stream().collect(Collectors.toUnmodifiableMap(
+                Map.Entry::getKey, e -> new ModelRoute(
+                        businessClients.computeIfAbsent(e.getValue().client(), client -> client.mutate()
+                                .defaultSystem(templates.renderSystemPrompt())
+                                .defaultAdvisors(new VerifyAdvisor()).build()),
+                        e.getValue().model(), e.getValue().supportedInputs())));
     }
 
-    /**
-     * AI 基础对话
-     * @param message
-     * @param chatId
-     * @return
-     */
-    public String doChat(String message, String chatId){
-        ChatResponse chatResponse = chatClient
-                .prompt()
-                .user(message)
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                .call()
-                .chatResponse();
-        String content = chatResponse.getResult().getOutput().getText();
-        return content;
-
+    public String doChat(LoveChatRequest request) {
+        return execute(request, null, null, false, Function.identity());
     }
 
-    /**
-     * 带报告的对话
-     * @param message
-     * @param chatId
-     * @return
-     */
-    record LoveReport(String title, List<String> suggestions){}
+    public String doChat(String message, String chatId) { return doChat(message, chatId, null); }
+    public String doChat(String message, String chatId, String model) {
+        return doChat(new LoveChatRequest(chatId, model, message, List.of()));
+    }
 
-    public LoveReport doChatWithReport(String message, String chatId){
-        LoveReport loveReport = chatClient
-                .prompt()
-                .system(SYSTEM_PROMPT + "每次对话都要生成恋爱结果，标题为{用户名}的恋爱报告，内容为建议列表")
-                .user(message)
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                .call()
-                .entity(LoveReport.class);
-        log.info("loveReport: {}", loveReport);
-        return loveReport;
+    public LoveReport doChatWithReport(LoveReportRequest request) {
+        validator.validate(request);
+        return execute(request.chatRequest(), request.userName(), request.relationshipStatus(), true, this::parseReport);
+    }
 
+    public Set<String> availableModels() { return clients.keySet(); }
+
+    private LoveReport parseReport(String text) {
+        LoveReport report;
+        try {
+            String json = text.strip();
+            if (json.startsWith("```") && json.endsWith("```")) {
+                int newline = json.indexOf('\n');
+                if (newline < 0) throw new IllegalStateException("Invalid report response");
+                json = json.substring(newline + 1, json.length() - 3).strip();
+            }
+            report = objectMapper.readValue(json, LoveReport.class);
+        } catch (JsonProcessingException e) {
+            // 不记录原始模型输出，避免在解析失败日志中泄露聊天内容。
+            throw new IllegalStateException("Invalid report response");
+        }
+        if (report == null || !StringUtils.hasText(report.title()) || report.suggestions() == null
+                || report.suggestions().isEmpty() || report.suggestions().stream().anyMatch(s -> !StringUtils.hasText(s)))
+            throw new IllegalStateException("Invalid report response");
+        return report;
+    }
+
+    private <T> T execute(LoveChatRequest request, String userName, String relationshipStatus,
+                          boolean report, Function<String, T> converter) {
+        validator.validate(request);
+        String model = catalog.resolve(request.model());
+        ModelRoute route = clients.get(model);
+        return conversations.execute(request.chatId(), () -> {
+            String text = StringUtils.hasText(request.text()) ? request.text() : "请描述并分析这张图片。";
+            if (report) text = templates.renderReportInstruction(userName, relationshipStatus, text);
+            UserMessage stored = assembler.storedMessage(request, text);
+            // 输出格式只用于本次调用，存储的用户消息不重复包含 schema。
+            UserMessage outgoing = report ? assembler.storedMessage(request,
+                    text + "\n" + new BeanOutputConverter<>(LoveReport.class).getFormat()) : stored;
+            var messages = assembler.assemble(memory.get(request.chatId()), outgoing, route.supportedInputs());
+            String answer;
+            T result;
+            try {
+                answer = route.prompt().messages(messages).call().content();
+                if (!StringUtils.hasText(answer)) throw new IllegalStateException("Empty model response");
+                result = converter.apply(answer);
+            } catch (ChatException e) {
+                throw e;
+            } catch (RuntimeException e) {
+                throw new ChatException(ErrorCode.MODEL_CALL_FAILED, "模型调用失败或返回格式无效，请稍后重试");
+            }
+            // 一次提交本轮两条消息。校验、模型调用、报告解析失败时不修改历史。
+            memory.add(request.chatId(), List.of(stored, new AssistantMessage(answer)));
+            return result;
+        });
     }
 }
