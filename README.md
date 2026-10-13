@@ -96,6 +96,14 @@ For an image, upload it to `/api/attachments`, then include the returned `fileId
 
 The default suite uses mock providers or a local HTTP stub. Live provider tests are opt-in with `RUN_LIVE_AI_TESTS=true` and require valid credentials.
 
+## Knowledge base source documents
+
+The `src/main/resources/document/` directory contains 36 original Chinese FAQ entries across single, dating, and married relationship scenarios. Each answer includes a proposed course topic. These Markdown files are **source material for a future RAG pipeline**; the application does not yet index, retrieve, or cite them during chat.
+
+- [Single relationships](src/main/resources/document/恋爱常见问题和回答%20-%20单身篇.md)
+- [Dating relationships](src/main/resources/document/恋爱常见问题和回答%20-%20恋爱篇.md)
+- [Married relationships](src/main/resources/document/恋爱常见问题和回答%20-%20已婚篇.md)
+
 ## Scope and next steps
 
 The current local storage and locking model is designed for one application instance. The application has no user accounts, tenant isolation, attachment expiry, or disk-wide quota. Before exposing it to multiple users, add authenticated ownership for conversations and files, shared storage, and cross-instance coordination. A complete chat history should be stored separately from the bounded context window.
