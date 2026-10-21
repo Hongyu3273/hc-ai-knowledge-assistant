@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import java.util.UUID;
 
-/** 新业务接口统一错误契约；不把供应商异常、用户原文或凭据返回给调用方。 */
+/** Maps business API failures to a common error response without exposing provider errors, user text, or credentials. */
 @RestControllerAdvice
 public class ChatExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(ChatExceptionHandler.class);
@@ -23,27 +23,27 @@ public class ChatExceptionHandler {
     public ResponseEntity<ApiError> business(ChatException e) { return error(e.code(), e.getMessage()); }
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiError> tooLarge(MaxUploadSizeExceededException e) {
-        return error(ErrorCode.ATTACHMENT_TOO_LARGE, "上传文件超过大小限制");
+        return error(ErrorCode.ATTACHMENT_TOO_LARGE, "The uploaded file exceeds the size limit");
     }
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
             MissingServletRequestPartException.class, HttpMediaTypeNotSupportedException.class, MultipartException.class})
     public ResponseEntity<ApiError> invalid(Exception e) {
-        return error(ErrorCode.INVALID_REQUEST, "请求格式或参数无效，请检查字段和附件");
+        return error(ErrorCode.INVALID_REQUEST, "Invalid request format or parameters. Check the fields and attachments.");
     }
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
     public ResponseEntity<ApiError> notFound(Exception e) {
-        return error(ErrorCode.RESOURCE_NOT_FOUND, "请求的资源不存在");
+        return error(ErrorCode.RESOURCE_NOT_FOUND, "The requested resource does not exist");
     }
     @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiError> methodNotAllowed(Exception e) {
-        return error(ErrorCode.METHOD_NOT_ALLOWED, "请求方法不受支持");
+        return error(ErrorCode.METHOD_NOT_ALLOWED, "The request method is not supported");
     }
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> unexpected(Exception e) {
         String id = UUID.randomUUID().toString();
         log.error("Chat request failed, errorId={}, exceptionType={}", id, e.getClass().getName());
         return ResponseEntity.internalServerError().body(new ApiError(ErrorCode.INTERNAL_ERROR.name(),
-                "服务暂时不可用，请稍后重试", id));
+                "The service is temporarily unavailable. Please try again later.", id));
     }
     private ResponseEntity<ApiError> error(ErrorCode code, String message) {
         return ResponseEntity.status(code.status()).body(new ApiError(code.name(), message, UUID.randomUUID().toString()));

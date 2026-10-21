@@ -11,6 +11,7 @@ import com.hc.aiagenthyc.memory.ConversationExecutor;
 import com.hc.aiagenthyc.model.ModelCatalog;
 import jakarta.validation.Validation;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.ClassPathResource;
 import java.util.Map;
 import static org.mockito.Mockito.mock;
@@ -29,8 +30,14 @@ public final class LoveAppTestFactory {
     public static LoveApp create(Map<String, ModelRoute> routes, ChatMemory memory,
                                  LovePromptTemplates templates, String defaultModel,
                                  AttachmentService attachments, AttachmentProperties properties) {
+        return create(routes, memory, templates, defaultModel, attachments, properties, mock(VectorStore.class));
+    }
+    public static LoveApp create(Map<String, ModelRoute> routes, ChatMemory memory,
+                                 LovePromptTemplates templates, String defaultModel,
+                                 AttachmentService attachments, AttachmentProperties properties, VectorStore vectorStore) {
         return new LoveApp(new ModelCatalog(routes, defaultModel), memory, templates,
                 new ChatRequestValidator(VALIDATORS.getValidator(), properties),
-                new MultimodalMessageAssembler(attachments, properties), new ConversationExecutor(), new com.fasterxml.jackson.databind.ObjectMapper());
+                new MultimodalMessageAssembler(attachments, properties), new ConversationExecutor(),
+                new com.fasterxml.jackson.databind.ObjectMapper(), vectorStore);
     }
 }

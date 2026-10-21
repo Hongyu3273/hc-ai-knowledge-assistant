@@ -23,7 +23,7 @@ public class MultimodalMessageAssembler {
         this.properties = properties;
     }
 
-    /** 持久化消息仅包含引用，不包含图片字节。使用可序列化的普通集合兼容已有 Kryo 仓库。 */
+    /** Persist references rather than image bytes. Use ordinary serializable collections for compatibility with the Kryo repository. */
     public UserMessage storedMessage(LoveChatRequest request, String text) {
         Map<String, Object> metadata = new HashMap<>();
         if (!request.attachments().isEmpty()) metadata.put(ATTACHMENT_IDS,
@@ -32,6 +32,8 @@ public class MultimodalMessageAssembler {
     }
 
     public List<Message> assemble(List<Message> history, UserMessage current, Set<InputType> supported) {
+        // Rebuild media from stored attachment IDs for this call without mutating persisted history.
+        // Validate historical images too: switching to a text-only route cannot reuse image context.
         List<Message> stored = new ArrayList<>(history);
         stored.add(current);
         List<Message> result = new ArrayList<>();
@@ -45,9 +47,9 @@ public class MultimodalMessageAssembler {
             List<Media> media = new ArrayList<>(user.getMedia());
             for (Media existing : media) {
                 require(supported, inputType(existing.getMimeType().toString()));
-                // 第一版旧仓库只有文字；不自动读取历史中的任意外部 URI。
+                // Legacy memory contains text only; never fetch arbitrary external URIs from stored messages.
                 if (!(existing.getData() instanceof byte[] bytes))
-                    throw new ChatException(ErrorCode.ATTACHMENT_UNAVAILABLE, "历史媒体格式不受支持，请新建会话");
+                    throw new ChatException(ErrorCode.ATTACHMENT_UNAVAILABLE, "The media format in conversation history is unsupported. Start a new conversation.");
                 total += bytes.length;
             }
             Object raw = user.getMetadata().get(ATTACHMENT_IDS);
@@ -57,7 +59,7 @@ public class MultimodalMessageAssembler {
                     if (!(value instanceof String id)) throw unavailable();
                     var metadata = attachments.metadata(id);
                     if (!properties.getAllowedTypes().contains(metadata.mimeType()))
-                        throw new ChatException(ErrorCode.UNSUPPORTED_ATTACHMENT_TYPE, "历史附件类型已不受支持");
+                        throw new ChatException(ErrorCode.UNSUPPORTED_ATTACHMENT_TYPE, "The attachment type in conversation history is no longer supported");
                     require(supported, inputType(metadata.mimeType()));
                     total += metadata.size();
                     checkSize(total);
@@ -65,25 +67,25 @@ public class MultimodalMessageAssembler {
                 }
             }
             checkSize(total);
-            // 文件引用是内部信息，不发送给模型，也不将加载后的媒体对象保存回仓库。
+            // Keep internal file references out of model requests and do not persist the hydrated media objects.
             result.add(UserMessage.builder().text(user.getText()).media(media).build());
         }
         return result;
     }
     private void checkSize(long bytes) {
         if (bytes > properties.getMaxContextBytes()) throw new ChatException(ErrorCode.ATTACHMENT_TOO_LARGE,
-                "会话中的图片总大小超过限制，请新建会话");
+                "The total image size in this conversation exceeds the limit. Start a new conversation.");
     }
     private static InputType inputType(String mime) {
         if (mime.startsWith("image/")) return InputType.IMAGE;
         if (mime.startsWith("audio/")) return InputType.AUDIO;
-        throw new ChatException(ErrorCode.UNSUPPORTED_ATTACHMENT_TYPE, "不支持的媒体类型");
+        throw new ChatException(ErrorCode.UNSUPPORTED_ATTACHMENT_TYPE, "Unsupported media type");
     }
     private static void require(Set<InputType> supported, InputType type) {
         if (!supported.contains(type)) throw new ChatException(ErrorCode.MODEL_INPUT_NOT_SUPPORTED,
-                "所选模型不支持当前消息或历史消息的 " + type.value() + " 输入，请选择兼容模型或新建会话");
+                "The selected model does not support this input type in the current message or history: " + type.value() + ". Select a compatible model or start a new conversation.");
     }
     private static ChatException unavailable() {
-        return new ChatException(ErrorCode.ATTACHMENT_UNAVAILABLE, "历史附件引用无效，请新建会话");
+        return new ChatException(ErrorCode.ATTACHMENT_UNAVAILABLE, "An attachment reference in conversation history is invalid. Start a new conversation.");
     }
 }

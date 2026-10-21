@@ -46,19 +46,19 @@ class MultimodalApiTest {
         mvc = MockMvcBuilders.standaloneSetup(new LoveChatController(app, catalog),
                         new AttachmentController(attachments), new ModelController(catalog))
                 .setControllerAdvice(new ChatExceptionHandler()).build();
-        when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(new AssistantMessage("回答")))));
+        when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(new AssistantMessage("Response")))));
     }
     @Test void uploadChatFollowupAndCapabilityDiscovery() throws Exception {
         var response = mvc.perform(multipart("/attachments").file(new MockMultipartFile("file", "sample.png", "image/png", image("png", 2, 2))))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.mimeType").value("image/png"))
                 .andExpect(jsonPath("$.storageKey").doesNotExist()).andReturn().getResponse().getContentAsString();
         String id = new ObjectMapper().readTree(response).get("fileId").asText();
-        String body = "{\"chatId\":\"a\",\"text\":\"看看图片\",\"attachments\":[{\"fileId\":\"" + id + "\"}]}";
+        String body = "{\"chatId\":\"a\",\"text\":\"Look at the image\",\"attachments\":[{\"fileId\":\"" + id + "\"}]}";
         mvc.perform(post("/love/chat").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.model").value("pro"))
-                .andExpect(jsonPath("$.content").value("回答"));
+                .andExpect(jsonPath("$.content").value("Response"));
         mvc.perform(post("/love/chat").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"chatId\":\"a\",\"model\":\"text\",\"text\":\"继续\"}"))
+                        .content("{\"chatId\":\"a\",\"model\":\"text\",\"text\":\"Continue\"}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("MODEL_INPUT_NOT_SUPPORTED"));
         mvc.perform(get("/ai/models")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.defaultModel").value("pro"))
@@ -66,9 +66,9 @@ class MultimodalApiTest {
     }
     @Test void reportReturnsStructuredResponse() throws Exception {
         when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(
-                new AssistantMessage("{\"title\":\"沟通建议\",\"suggestions\":[\"多倾听\"]}")))));
-        mvc.perform(post("/love/report").contentType(MediaType.APPLICATION_JSON).content("{\"chatId\":\"a\",\"text\":\"建议\"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.report.title").value("沟通建议"));
+                new AssistantMessage("{\"title\":\"Communication advice\",\"suggestions\":[\"Listen more\"]}")))));
+        mvc.perform(post("/love/report").contentType(MediaType.APPLICATION_JSON).content("{\"chatId\":\"a\",\"text\":\"Advice\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.report.title").value("Communication advice"));
     }
     @Test void validationAndProviderErrorsAreSanitized() throws Exception {
         mvc.perform(post("/love/chat").contentType(MediaType.APPLICATION_JSON).content("{\"chatId\":\"a\"}"))

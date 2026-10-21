@@ -13,13 +13,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 通过 HTTP 调用阿里云百炼（DashScope）大模型。
- * 使用 OpenAI 兼容模式接口，文档：
+ * Calls DashScope language models directly over HTTP.
+ * Uses the OpenAI-compatible endpoint. Documentation:
  * https://help.aliyun.com/zh/model-studio/developer-reference/compatibility-of-openai-with-dashscope
  */
 public class HttpAiInvoke {
 
-    /** 北京地域 OpenAI 兼容地址；新加坡可用 https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions */
+    /** Beijing OpenAI-compatible endpoint; for Singapore use https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions */
     private static final String API_URL =
             "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
 
@@ -44,7 +44,7 @@ public class HttpAiInvoke {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new IllegalStateException(
-                    "DashScope HTTP 调用失败, status=" + response.statusCode() + ", body=" + response.body());
+                    "DashScope HTTP call failed, status=" + response.statusCode() + ", body=" + response.body());
         }
         return response.body();
     }
@@ -59,7 +59,7 @@ public class HttpAiInvoke {
 
     public static void main(String[] args) {
         try {
-            String result = callWithMessage("你是谁？");
+            String result = callWithMessage("Who are you?");
             System.out.println(result);
         } catch (Exception e) {
             System.err.println("An error occurred while calling the generation service: " + e.getMessage());

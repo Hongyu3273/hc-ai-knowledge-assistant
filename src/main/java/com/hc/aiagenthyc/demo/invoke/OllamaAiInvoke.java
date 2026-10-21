@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 通过 Ollama 调用本地 Qwen 模型。
- * 默认连接 http://127.0.0.1:11434，并使用 qwen3-14b-local:latest。
- * 可通过 OLLAMA_BASE_URL 和 OLLAMA_MODEL 环境变量覆盖。
+ * Calls a local Qwen model through Ollama.
+ * Defaults to http://127.0.0.1:11434 and the qwen3-14b-local:latest model.
+ * Override the defaults with OLLAMA_BASE_URL and OLLAMA_MODEL environment variables.
  */
 public final class OllamaAiInvoke {
 
@@ -36,7 +36,7 @@ public final class OllamaAiInvoke {
                 "model", MODEL,
                 "stream", false,
                 "messages", List.of(
-                        Map.of("role", "system", "content", "你是一个博学的智能聊天助手，请根据用户提问回答！"),
+                        Map.of("role", "system", "content", "You are a knowledgeable AI chat assistant. Answer the user's questions."),
                         Map.of("role", "user", "content", userMessage == null ? "" : userMessage))));
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -50,12 +50,12 @@ public final class OllamaAiInvoke {
                 HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new IllegalStateException(
-                    "Ollama 调用失败，status=" + response.statusCode() + ", body=" + response.body());
+                    "Ollama call failed, status=" + response.statusCode() + ", body=" + response.body());
         }
 
         JsonNode content = OBJECT_MAPPER.readTree(response.body()).path("message").path("content");
         if (content.isMissingNode() || content.isNull()) {
-            throw new IllegalStateException("Ollama 返回结果中缺少 message.content: " + response.body());
+            throw new IllegalStateException("The Ollama response is missing message.content: " + response.body());
         }
         return content.asText();
     }
@@ -66,10 +66,10 @@ public final class OllamaAiInvoke {
 
     public static void main(String[] args) {
         try {
-            String message = args.length > 0 ? String.join(" ", args) : "你是谁？";
+            String message = args.length > 0 ? String.join(" ", args) : "Who are you?";
             System.out.println(callWithMessage(message));
         } catch (Exception e) {
-            System.err.println("本地 Ollama 模型调用失败: " + e.getMessage());
+            System.err.println("Local Ollama model call failed: " + e.getMessage());
             e.printStackTrace();
         }
     }

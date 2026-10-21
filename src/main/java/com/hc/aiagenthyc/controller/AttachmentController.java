@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AttachmentController {
     private final AttachmentService service;
     public AttachmentController(AttachmentService service) { this.service = service; }
-    @Operation(summary = "上传聊天图片", description = "当前支持 JPEG、PNG、WebP；返回 fileId，供对话请求引用")
+    @Operation(summary = "Upload a chat image", description = "Supports JPEG, PNG, and WebP; returns a fileId for use in chat requests")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public StoredAttachment upload(@RequestPart("file") MultipartFile file) { return service.upload(file); }

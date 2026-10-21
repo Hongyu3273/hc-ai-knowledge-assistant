@@ -44,6 +44,6 @@ class GeminiConfigurationTest {
     void enabledWithoutKeyFailsWithActionableMessage() {
         runner.withPropertyValues("app.gemini.enabled=true", "app.gemini.api-key=")
                 .run(context -> assertThat(context.getStartupFailure())
-                        .hasRootCauseMessage("启用 Gemini 时必须配置 GEMINI_API_KEY 或 app.gemini.api-key"));
+                        .hasRootCauseMessage("GEMINI_API_KEY or app.gemini.api-key must be configured when Gemini is enabled"));
     }
 }

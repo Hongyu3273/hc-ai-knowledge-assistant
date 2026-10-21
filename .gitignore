@@ -41,3 +41,6 @@ build/
 .vscode/
 
 /tmp/chat-attachments/
+
+# Local Chinese Spring AI learning guide
+/docs/spring-ai-guide-zh.md

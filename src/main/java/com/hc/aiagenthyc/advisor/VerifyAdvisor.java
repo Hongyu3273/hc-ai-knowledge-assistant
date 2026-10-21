@@ -13,15 +13,15 @@ import reactor.core.publisher.Flux;
 import java.util.Set;
 
 /**
- * 在调用模型前拦截包含禁用词的请求。
+ * Rejects requests containing blocked terms before calling the model.
  */
 public final class VerifyAdvisor implements CallAdvisor, StreamAdvisor {
 
     private static final Set<String> FORBIDDEN_WORDS = Set.of(
-            "测试违禁词",
-            "虚假广告",
-            "恶意链接",
-            "诈骗"
+            "test prohibited phrase",
+            "false advertising",
+            "malicious link",
+            "fraud"
     );
 
     private final int order;
@@ -65,7 +65,7 @@ public final class VerifyAdvisor implements CallAdvisor, StreamAdvisor {
     private ChatException refusal() {
         return new ChatException(
                 ErrorCode.CONTENT_NOT_ALLOWED,
-                "这条消息包含不允许的内容，无法回答");
+                "This message contains prohibited content and cannot be answered");
     }
 
     private boolean containsForbiddenWord(String userText) {

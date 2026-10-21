@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 public class SDKAiInvoke {
-    // 建议dashscope SDK的版本 >= 2.12.0
+    // Use DashScope SDK version 2.12.0 or newer.
 
 
     static {
@@ -31,12 +31,12 @@ public class SDKAiInvoke {
                 .build();
         MultiModalMessage userMsg = MultiModalMessage.builder()
                 .role(Role.USER.getValue())
-                .content(Arrays.asList(Collections.singletonMap("text", "你是谁？")))
+                .content(Arrays.asList(Collections.singletonMap("text", "Who are you?")))
                 .build();
         MultiModalConversationParam param = MultiModalConversationParam.builder()
-                // 引用 TestApiKey 中的常量（本地测试用；生产建议改回环境变量）
+                // Read the local demo key from TestApiKey; prefer environment-based credentials in production.
                 .apiKey(TestApiKey.API_KEY)
-                // 此处以qwen3.8-max为例，可按需更换模型名称。模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
+                // Uses qwen3.8-max as an example; choose a model available to your account. Model list: https://help.aliyun.com/zh/model-studio/getting-started/models
                 .model("qwen3.8-max")
                 .messages(Arrays.asList(systemMsg, userMsg))
                 .build();

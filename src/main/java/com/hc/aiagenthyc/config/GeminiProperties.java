@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/** Binds app.gemini settings; route IDs stay stable even when provider model IDs change. */
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "app.gemini")

@@ -24,15 +24,17 @@ public class AttachmentService {
     }
 
     public StoredAttachment upload(MultipartFile file) {
-        if (file == null || file.isEmpty()) throw new ChatException(ErrorCode.INVALID_ATTACHMENT, "请选择图片文件");
+        if (file == null || file.isEmpty()) throw new ChatException(ErrorCode.INVALID_ATTACHMENT, "Please select an image file");
         if (file.getSize() > properties.getMaxFileBytes()) throw tooLarge();
         byte[] content;
         try (var input = file.getInputStream()) {
+            // Read one byte past the limit to detect oversized streams without reading them in full.
             content = input.readNBytes(Math.toIntExact(properties.getMaxFileBytes() + 1));
         } catch (IOException e) {
-            throw new ChatException(ErrorCode.INVALID_ATTACHMENT, "无法读取上传文件");
+            throw new ChatException(ErrorCode.INVALID_ATTACHMENT, "Unable to read the uploaded file");
         }
         if (content.length > properties.getMaxFileBytes()) throw tooLarge();
+        // Inspect actual image bytes rather than trusting the filename or uploaded MIME type.
         try (var stream = new MemoryCacheImageInputStream(new ByteArrayInputStream(content))) {
             var readers = ImageIO.getImageReaders(stream);
             if (!readers.hasNext()) throw unsupported();
@@ -46,6 +48,7 @@ public class AttachmentService {
                     default -> throw unsupported();
                 };
                 if (!properties.getAllowedTypes().contains(mime)) throw unsupported();
+                // Reject excessive dimensions before allocating a fully decoded image.
                 int width = reader.getWidth(0), height = reader.getHeight(0);
                 if (width <= 0 || height <= 0 || (long) width * height > properties.getMaxPixels()) throw tooLarge();
                 if (reader.read(0) == null) throw new IOException();
@@ -57,7 +60,7 @@ public class AttachmentService {
         } catch (ChatException e) {
             throw e;
         } catch (IOException | RuntimeException e) {
-            throw new ChatException(ErrorCode.INVALID_ATTACHMENT, "图片损坏或无法解码");
+            throw new ChatException(ErrorCode.INVALID_ATTACHMENT, "The image is corrupted or cannot be decoded");
         }
     }
 
@@ -71,9 +74,9 @@ public class AttachmentService {
         return value.isBlank() ? "image" : value.substring(0, Math.min(128, value.length()));
     }
     private static ChatException tooLarge() {
-        return new ChatException(ErrorCode.ATTACHMENT_TOO_LARGE, "图片文件大小或像素数量超过限制");
+        return new ChatException(ErrorCode.ATTACHMENT_TOO_LARGE, "The image file size or pixel count exceeds the limit");
     }
     private static ChatException unsupported() {
-        return new ChatException(ErrorCode.UNSUPPORTED_ATTACHMENT_TYPE, "当前仅支持 JPEG、PNG、WebP 图片");
+        return new ChatException(ErrorCode.UNSUPPORTED_ATTACHMENT_TYPE, "Only JPEG, PNG, and WebP images are currently supported");
     }
 }

@@ -53,7 +53,7 @@ class LoveAppMultimodalTest {
         routes = Map.of("pro", new ModelRoute(client, "gemini-2.5-pro", Set.of(InputType.TEXT, InputType.IMAGE)),
                 "lite", new ModelRoute(client, "gemini-2.5-flash-lite", Set.of(InputType.TEXT, InputType.IMAGE)),
                 "text", new ModelRoute(ChatClient.create(text), null));
-        when(vision.call(any(Prompt.class))).thenReturn(response("图片回答"));
+        when(vision.call(any(Prompt.class))).thenReturn(response("Image response"));
         app = reopen(6);
     }
     private LoveApp reopen(int window) {
@@ -68,14 +68,14 @@ class LoveAppMultimodalTest {
         return new LoveReportRequest(chatId, model, text, image ? List.of(new ChatAttachment(fileId)) : List.of(), null, null);
     }
     @Test void persistsReferencesAndRehydratesHistoryAfterRestart() {
-        app.doChat(request("a", null, "分析图片", true));
+        app.doChat(request("a", null, "Analyze the image", true));
         var saved = repository.findByConversationId("a");
         assertThat(saved).hasSize(2);
         UserMessage user = (UserMessage) saved.getFirst();
         assertThat(user.getMedia()).isEmpty();
         assertThat(user.getMetadata().get(MultimodalMessageAssembler.ATTACHMENT_IDS)).isEqualTo(List.of(fileId));
         app = reopen(6);
-        app.doChat(request("a", "lite", "最后一句呢", false));
+        app.doChat(request("a", "lite", "What about the last sentence?", false));
         ArgumentCaptor<Prompt> prompts = ArgumentCaptor.forClass(Prompt.class);
         verify(vision, times(2)).call(prompts.capture());
         Prompt followup = prompts.getAllValues().getLast();
@@ -87,53 +87,53 @@ class LoveAppMultimodalTest {
         assertThat(repository.findByConversationId("a")).hasSize(4);
     }
     @Test void rejectsTextModelForCurrentAndHistoricalImages() {
-        assertCode(() -> app.doChat(request("a", "text", "看看图片", true)), ErrorCode.MODEL_INPUT_NOT_SUPPORTED);
+        assertCode(() -> app.doChat(request("a", "text", "Look at the image", true)), ErrorCode.MODEL_INPUT_NOT_SUPPORTED);
         assertThat(repository.findByConversationId("a")).isEmpty();
-        app.doChat(request("a", "pro", "看看图片", true));
-        assertCode(() -> app.doChat(request("a", "text", "继续", false)), ErrorCode.MODEL_INPUT_NOT_SUPPORTED);
+        app.doChat(request("a", "pro", "Look at the image", true));
+        assertCode(() -> app.doChat(request("a", "text", "Continue", false)), ErrorCode.MODEL_INPUT_NOT_SUPPORTED);
         assertThat(repository.findByConversationId("a")).hasSize(2);
         verify(text, never()).call(any(Prompt.class));
     }
     @Test void imageOnlyUsesDefaultInstructionAndRejectsEmptyOrMalformedInput() {
         app.doChat(request("a", null, null, true));
-        assertThat(repository.findByConversationId("a").getFirst().getText()).contains("描述并分析");
+        assertThat(repository.findByConversationId("a").getFirst().getText()).contains("describe and analyze");
         assertCode(() -> app.doChat(request("b", null, " ", false)), ErrorCode.EMPTY_CHAT_INPUT);
         assertCode(() -> app.doChat(new LoveChatRequest("x", null, "hi", Arrays.asList((ChatAttachment) null))), ErrorCode.INVALID_REQUEST);
-        assertCode(() -> app.doChat(new LoveChatRequest("中".repeat(43), null, "hi", null)), ErrorCode.INVALID_REQUEST);
+        assertCode(() -> app.doChat(new LoveChatRequest("\u20AC".repeat(43), null, "hi", null)), ErrorCode.INVALID_REQUEST);
         assertCode(() -> app.doChat(new LoveChatRequest("b", null, "hi", List.of(new ChatAttachment(fileId), new ChatAttachment(fileId)))), ErrorCode.INVALID_REQUEST);
     }
     @Test void failuresAndRefusalsDoNotCommitHistory() {
         when(vision.call(any(Prompt.class))).thenThrow(new RuntimeException("upstream secret"));
-        assertCode(() -> app.doChat(request("a", null, "问题", true)), ErrorCode.MODEL_CALL_FAILED);
+        assertCode(() -> app.doChat(request("a", null, "Question", true)), ErrorCode.MODEL_CALL_FAILED);
         assertThat(repository.findByConversationId("a")).isEmpty();
-        assertCode(() -> app.doChat(request("b", null, "测试违禁词", true)), ErrorCode.CONTENT_NOT_ALLOWED);
+        assertCode(() -> app.doChat(request("b", null, "test prohibited phrase", true)), ErrorCode.CONTENT_NOT_ALLOWED);
         assertThat(repository.findByConversationId("b")).isEmpty();
     }
     @Test void reportIncludesMediaAndOnlyCommitsValidOutput() {
-        when(vision.call(any(Prompt.class))).thenReturn(response("{\"title\":\"沟通建议\",\"suggestions\":[\"认真倾听\"]}"));
-        assertThat(app.doChatWithReport(report("a", "lite", "生成报告", true)).title()).isEqualTo("沟通建议");
+        when(vision.call(any(Prompt.class))).thenReturn(response("{\"title\":\"Communication advice\",\"suggestions\":[\"Listen carefully\"]}"));
+        assertThat(app.doChatWithReport(report("a", "lite", "Generate a report", true)).title()).isEqualTo("Communication advice");
         ArgumentCaptor<Prompt> prompt = ArgumentCaptor.forClass(Prompt.class);
         verify(vision).call(prompt.capture());
         assertThat(prompt.getValue().getUserMessage().getMedia()).hasSize(1);
         assertThat(repository.findByConversationId("a")).hasSize(2);
         when(vision.call(any(Prompt.class))).thenReturn(response("not json"));
-        assertCode(() -> app.doChatWithReport(report("b", null, "生成报告", true)), ErrorCode.MODEL_CALL_FAILED);
+        assertCode(() -> app.doChatWithReport(report("b", null, "Generate a report", true)), ErrorCode.MODEL_CALL_FAILED);
         assertThat(repository.findByConversationId("b")).isEmpty();
     }
     @Test void missingAttachmentAndContextLimitFailBeforeCallingModel() throws Exception {
         properties.setMaxContextBytes(1);
-        assertCode(() -> app.doChat(request("a", null, "图片", true)), ErrorCode.ATTACHMENT_TOO_LARGE);
+        assertCode(() -> app.doChat(request("a", null, "Image", true)), ErrorCode.ATTACHMENT_TOO_LARGE);
         properties.setMaxContextBytes(10000);
         Files.delete(Path.of(properties.getDirectory()).resolve(fileId).resolve("content"));
-        assertCode(() -> app.doChat(request("a", null, "图片", true)), ErrorCode.ATTACHMENT_UNAVAILABLE);
+        assertCode(() -> app.doChat(request("a", null, "Image", true)), ErrorCode.ATTACHMENT_UNAVAILABLE);
         verify(vision, never()).call(any(Prompt.class));
     }
     @Test void evictedImageNoLongerBlocksTextModel() {
         app = reopen(2);
-        app.doChat(request("a", "pro", "图片", true));
-        app.doChat(request("a", "pro", "继续", false));
-        when(text.call(any(Prompt.class))).thenReturn(response("文字回答"));
-        assertThat(app.doChat(request("a", "text", "你好", false))).isEqualTo("文字回答");
+        app.doChat(request("a", "pro", "Image", true));
+        app.doChat(request("a", "pro", "Continue", false));
+        when(text.call(any(Prompt.class))).thenReturn(response("Text response"));
+        assertThat(app.doChat(request("a", "text", "Hello", false))).isEqualTo("Text response");
     }
     @Test void concurrentTurnsOfSameConversationAreCommittedInOrder() throws Exception {
         CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1);

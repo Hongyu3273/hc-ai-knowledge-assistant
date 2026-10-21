@@ -4,7 +4,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 
-/** 自生成测试图片，不依赖用户文件或网络下载。 */
+/** Generates test images locally without user files or network downloads. */
 public final class ImageFixtures {
     private ImageFixtures() { }
     public static byte[] image(String format, int width, int height) throws Exception {

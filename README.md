@@ -100,9 +100,9 @@ The default suite uses mock providers or a local HTTP stub. Live provider tests 
 
 The `src/main/resources/document/` directory contains 36 original Chinese FAQ entries across single, dating, and married relationship scenarios. Each answer includes a proposed course topic. These Markdown files are **source material for a future RAG pipeline**; the application does not yet index, retrieve, or cite them during chat.
 
-- [Single relationships](src/main/resources/document/恋爱常见问题和回答%20-%20单身篇.md)
-- [Dating relationships](src/main/resources/document/恋爱常见问题和回答%20-%20恋爱篇.md)
-- [Married relationships](src/main/resources/document/恋爱常见问题和回答%20-%20已婚篇.md)
+- [Single relationships](src/main/resources/document/relationship-faq-single.md)
+- [Dating relationships](src/main/resources/document/relationship-faq-dating.md)
+- [Married relationships](src/main/resources/document/relationship-faq-married.md)
 
 ## Scope and next steps
 

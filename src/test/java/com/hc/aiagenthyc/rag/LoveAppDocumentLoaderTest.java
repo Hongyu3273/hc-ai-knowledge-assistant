@@ -1,12 +1,16 @@
 package com.hc.aiagenthyc.rag;
 
 
-import jakarta.annotation.Resource;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.Test;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
-@SpringBootTest
-public class LoveAppDocumentLoaderTest {
+import static org.assertj.core.api.Assertions.assertThat;
 
-    @Resource
+class LoveAppDocumentLoaderTest {
 
+    @Test
+    void loadsBundledRelationshipDocuments() {
+        var loader = new LoveAppDocumentLoader(new PathMatchingResourcePatternResolver());
+        assertThat(loader.loadMarkdown()).isNotEmpty();
+    }
 }

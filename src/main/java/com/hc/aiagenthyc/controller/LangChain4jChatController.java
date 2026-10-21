@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * LangChain4j DashScope 示例接口。
- * 依赖自动装配的 QwenChatModel（ChatModel）。
+ * Example endpoints using LangChain4j and DashScope.
+ * Uses the QwenChatModel (ChatModel) supplied by auto-configuration.
  */
 @RestController
 @RequestMapping("/langchain4j")
@@ -21,10 +21,10 @@ public class LangChain4jChatController {
     }
 
     /**
-     * GET /api/langchain4j/chat?message=你是谁
+     * GET /api/langchain4j/chat?message=Hello
      */
     @GetMapping("/chat")
-    public String chat(@RequestParam(defaultValue = "你是谁？") String message) {
+    public String chat(@RequestParam(defaultValue = "Who are you?") String message) {
         return chatModel.chat(message);
     }
 }

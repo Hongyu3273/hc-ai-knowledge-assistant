@@ -14,21 +14,21 @@ class LovePromptTemplatesTest {
 
     @Test
     void rendersSystemPromptVariables() {
-        String prompt = this.templates.renderSystemPrompt("中文", "专业且简洁");
+        String prompt = this.templates.renderSystemPrompt("English", "professional and concise");
 
-        assertTrue(prompt.contains("中文"));
-        assertTrue(prompt.contains("专业且简洁"));
+        assertTrue(prompt.contains("English"));
+        assertTrue(prompt.contains("professional and concise"));
         assertFalse(prompt.contains("{language}"));
         assertFalse(prompt.contains("{responseStyle}"));
     }
 
     @Test
     void rendersReportVariables() {
-        String prompt = this.templates.renderReportInstruction("小陈", "恋爱中", "我们经常因为沟通吵架");
+        String prompt = this.templates.renderReportInstruction("Chen", "Dating", "We often argue about communication");
 
-        assertTrue(prompt.contains("小陈"));
-        assertTrue(prompt.contains("恋爱中"));
-        assertTrue(prompt.contains("我们经常因为沟通吵架"));
+        assertTrue(prompt.contains("Chen"));
+        assertTrue(prompt.contains("Dating"));
+        assertTrue(prompt.contains("We often argue about communication"));
         assertFalse(prompt.contains("{userName}"));
         assertFalse(prompt.contains("{relationshipStatus}"));
         assertFalse(prompt.contains("{question}"));
@@ -36,9 +36,9 @@ class LovePromptTemplatesTest {
 
     @Test
     void usesReportDefaultsForMissingOptionalValues() {
-        String prompt = this.templates.renderReportInstruction(null, " ", "我不知道该怎么办");
+        String prompt = this.templates.renderReportInstruction(null, " ", "I do not know what to do");
 
-        assertTrue(prompt.contains("用户称呼：用户"));
-        assertTrue(prompt.contains("当前感情状态：未说明"));
+        assertTrue(prompt.contains("User name: User"));
+        assertTrue(prompt.contains("Current relationship status: Not specified"));
     }
 }

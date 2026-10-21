@@ -12,18 +12,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
- * 加载并渲染 LoveApp 使用的 Prompt 资源模板。
+ * Loads and renders the classpath prompt templates used by LoveApp.
  */
 @Component
 public final class LovePromptTemplates {
 
-    private static final String DEFAULT_LANGUAGE = "中文";
+    private static final String DEFAULT_LANGUAGE = "English";
 
-    private static final String DEFAULT_RESPONSE_STYLE = "专业、温和、具体";
+    private static final String DEFAULT_RESPONSE_STYLE = "professional, warm, and specific";
 
-    private static final String DEFAULT_USER_NAME = "用户";
+    private static final String DEFAULT_USER_NAME = "User";
 
-    private static final String DEFAULT_RELATIONSHIP_STATUS = "未说明";
+    private static final String DEFAULT_RELATIONSHIP_STATUS = "Not specified";
 
     private final String systemTemplate;
 

@@ -33,8 +33,8 @@ class FileBasedChatMemoryRepositoryTest {
         FileBasedChatMemoryRepository repository =
                 new FileBasedChatMemoryRepository(this.tempDirectory.toString());
         List<Message> expected = List.of(
-                new UserMessage("你好"),
-                new AssistantMessage("你好，有什么可以帮你？"));
+                new UserMessage("Hello"),
+                new AssistantMessage("Hello, how can I help you?"));
 
         repository.saveAll("conversation-1", expected);
 
@@ -42,8 +42,8 @@ class FileBasedChatMemoryRepositoryTest {
         assertEquals(2, actual.size());
         assertInstanceOf(UserMessage.class, actual.get(0));
         assertInstanceOf(AssistantMessage.class, actual.get(1));
-        assertEquals("你好", actual.get(0).getText());
-        assertEquals("你好，有什么可以帮你？", actual.get(1).getText());
+        assertEquals("Hello", actual.get(0).getText());
+        assertEquals("Hello, how can I help you?", actual.get(1).getText());
         assertEquals(List.of("conversation-1"), repository.findConversationIds());
 
         repository.deleteByConversationId("conversation-1");
@@ -58,7 +58,7 @@ class FileBasedChatMemoryRepositoryTest {
                 new FileBasedChatMemoryRepository(this.tempDirectory.toString());
         Path escapedFile = this.tempDirectory.getParent().resolve("escaped.kryo");
 
-        repository.saveAll("../escaped", List.of(new UserMessage("安全测试")));
+        repository.saveAll("../escaped", List.of(new UserMessage("Security test")));
 
         assertFalse(Files.exists(escapedFile));
         assertEquals(List.of("../escaped"), repository.findConversationIds());

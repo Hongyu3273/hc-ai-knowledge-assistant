@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** 真实 Google SDK + Spring AI 请求本地 HTTP 桩，不消耗 API 额度。 */
+/** Exercises the real Google SDK and Spring AI against a local HTTP stub without consuming API quota. */
 class LoveAppGeminiIntegrationTest {
     private final LinkedBlockingQueue<CapturedRequest> requests = new LinkedBlockingQueue<>();
     private HttpServer server;
@@ -42,7 +42,7 @@ class LoveAppGeminiIntegrationTest {
                     new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8),
                     exchange.getRequestHeaders().getFirst("x-goog-api-key")));
             byte[] response = """
-                    {"modelVersion":"test-model","candidates":[{"content":{"role":"model","parts":[{"text":"你好"}]},
+                    {"modelVersion":"test-model","candidates":[{"content":{"role":"model","parts":[{"text":"Hello"}]},
                     "finishReason":"STOP","index":0}],
                     "usageMetadata":{"promptTokenCount":4,"candidatesTokenCount":2,"totalTokenCount":6}}
                     """.getBytes(StandardCharsets.UTF_8);
@@ -81,14 +81,14 @@ class LoveAppGeminiIntegrationTest {
         for (String model : new String[]{"gemini-2.5-pro", "gemini-2.5-flash-lite", ""}) {
             String expected = model.isEmpty() ? "gemini-2.5-pro" : model;
             String chatId = UUID.randomUUID().toString();
-            String answer = model.isEmpty() ? app.doChat("你好", chatId) : app.doChat("你好", chatId, model);
-            assertThat(answer).isEqualTo("你好");
+            String answer = model.isEmpty() ? app.doChat("Hello", chatId) : app.doChat("Hello", chatId, model);
+            assertThat(answer).isEqualTo("Hello");
             CapturedRequest request = requests.poll(1, TimeUnit.SECONDS);
             assertThat(request).isNotNull();
             assertThat(request.path()).isEqualTo("/v1beta/models/" + expected + ":generateContent");
             assertThat(request.apiKey()).isEqualTo("test-key");
             var json = new ObjectMapper().readTree(request.body());
-            assertThat(json.at("/contents/0/parts/0/text").asText()).isEqualTo("你好");
+            assertThat(json.at("/contents/0/parts/0/text").asText()).isEqualTo("Hello");
             assertThat(json.at("/systemInstruction/parts/0/text").asText()).isNotBlank();
         }
     }
@@ -102,7 +102,7 @@ class LoveAppGeminiIntegrationTest {
                 tasks.add(() -> app.doChat(model, UUID.randomUUID().toString(), model));
             }
             for (var result : executor.invokeAll(tasks)) {
-                assertThat(result.get()).isEqualTo("你好");
+                assertThat(result.get()).isEqualTo("Hello");
             }
         }
         assertThat(requests).hasSize(8);
@@ -117,9 +117,9 @@ class LoveAppGeminiIntegrationTest {
     void sendsActualImageBytesAndReusesImageInFollowup() throws Exception {
         byte[] bytes = com.hc.aiagenthyc.support.ImageFixtures.image("png", 2, 2);
         var file = attachments.upload(new org.springframework.mock.web.MockMultipartFile("file", bytes));
-        app.doChat(new com.hc.aiagenthyc.app.model.LoveChatRequest("image-chat", null, "看看图片",
+        app.doChat(new com.hc.aiagenthyc.app.model.LoveChatRequest("image-chat", null, "Look at the image",
                 java.util.List.of(new com.hc.aiagenthyc.app.model.ChatAttachment(file.fileId()))));
-        app.doChat("最后一句呢", "image-chat", "gemini-2.5-flash-lite");
+        app.doChat("What about the last sentence?", "image-chat", "gemini-2.5-flash-lite");
         for (int i = 0; i < 2; i++) {
             var captured = requests.poll(1, TimeUnit.SECONDS);
             assertThat(captured).isNotNull();

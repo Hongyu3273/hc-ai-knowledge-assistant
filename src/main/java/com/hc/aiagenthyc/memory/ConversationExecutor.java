@@ -4,9 +4,10 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
-/** 单实例会话事务边界：读历史、调用模型、保存结果串行执行。多实例需分布式实现。 */
+/** Serializes the read-call-save sequence per conversation in one application instance; multiple instances need distributed coordination. */
 @Component
 public class ConversationExecutor {
+    // A fixed lock pool bounds memory use. Different conversation IDs can share a stripe.
     private final ReentrantLock[] locks = new ReentrantLock[256];
     public ConversationExecutor() {
         for (int i = 0; i < locks.length; i++) locks[i] = new ReentrantLock();

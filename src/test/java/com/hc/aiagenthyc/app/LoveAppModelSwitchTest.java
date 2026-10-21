@@ -37,45 +37,45 @@ class LoveAppModelSwitchTest {
         clients = Map.of("dashscope", new ModelRoute(ChatClient.create(dashscope), null),
                 "gemini-2.5-pro", new ModelRoute(ChatClient.create(pro), "gemini-2.5-pro"),
                 "gemini-2.5-flash-lite", new ModelRoute(ChatClient.create(flashLite), "gemini-2.5-flash-lite"));
-        when(dashscope.call(any(Prompt.class))).thenReturn(response("千问回答"));
-        when(pro.call(any(Prompt.class))).thenReturn(response("Pro 回答"));
-        when(flashLite.call(any(Prompt.class))).thenReturn(response("Lite 回答"));
+        when(dashscope.call(any(Prompt.class))).thenReturn(response("Qwen response"));
+        when(pro.call(any(Prompt.class))).thenReturn(response("Pro response"));
+        when(flashLite.call(any(Prompt.class))).thenReturn(response("Lite response"));
         app = com.hc.aiagenthyc.support.LoveAppTestFactory.create(clients, MessageWindowChatMemory.builder().build(), templates, "gemini-2.5-pro");
     }
 
     @Test
     void configuredDefaultAndPerCallOverridesRemainIndependent() {
-        assertThat(app.doChat("你好", "a")).isEqualTo("Pro 回答");
-        assertThat(app.doChat("你好", "b", "dashscope")).isEqualTo("千问回答");
-        assertThat(app.doChat("你好", "c", "gemini-2.5-flash-lite")).isEqualTo("Lite 回答");
-        assertThat(app.doChat("再见", "d")).isEqualTo("Pro 回答");
+        assertThat(app.doChat("Hello", "a")).isEqualTo("Pro response");
+        assertThat(app.doChat("Hello", "b", "dashscope")).isEqualTo("Qwen response");
+        assertThat(app.doChat("Hello", "c", "gemini-2.5-flash-lite")).isEqualTo("Lite response");
+        assertThat(app.doChat("Goodbye", "d")).isEqualTo("Pro response");
         verify(pro, times(2)).call(any(Prompt.class));
         assertThat(app.availableModels()).containsExactlyInAnyOrderElementsOf(clients.keySet());
     }
 
     @Test
     void switchingKeepsHistoryAndLoveSystemPromptButOtherChatsAreIsolated() {
-        app.doChat("我叫小王", "same", "dashscope");
-        app.doChat("我叫什么", "same", "gemini-2.5-pro");
-        app.doChat("你好", "different", "gemini-2.5-pro");
+        app.doChat("My name is Wang", "same", "dashscope");
+        app.doChat("What is my name?", "same", "gemini-2.5-pro");
+        app.doChat("Hello", "different", "gemini-2.5-pro");
         ArgumentCaptor<Prompt> prompts = ArgumentCaptor.forClass(Prompt.class);
         verify(pro, times(2)).call(prompts.capture());
         Prompt continued = prompts.getAllValues().getFirst();
         assertThat(continued.getSystemMessage().getText()).isEqualTo(templates.renderSystemPrompt());
         assertThat(continued.getInstructions()).extracting(message -> message.getText())
-                .contains("我叫小王", "千问回答", "我叫什么");
+                .contains("My name is Wang", "Qwen response", "What is my name?");
         assertThat(prompts.getAllValues().getLast().getInstructions()).extracting(message -> message.getText())
-                .doesNotContain("我叫小王", "千问回答");
+                .doesNotContain("My name is Wang", "Qwen response");
     }
 
     @Test
     void reportsUseDefaultOrExplicitModel() {
-        String json = "{\"title\":\"沟通建议\",\"suggestions\":[\"认真倾听\"]}";
+        String json = "{\"title\":\"Communication advice\",\"suggestions\":[\"Listen carefully\"]}";
         when(pro.call(any(Prompt.class))).thenReturn(response(json));
         when(flashLite.call(any(Prompt.class))).thenReturn(response(json));
-        assertThat(app.doChatWithReport(new LoveReportRequest("r1", null, "如何沟通", null, null, null)).title()).isEqualTo("沟通建议");
-        assertThat(app.doChatWithReport(new LoveReportRequest("r2", "gemini-2.5-flash-lite", "如何沟通", null, null, null)).suggestions())
-                .containsExactly("认真倾听");
+        assertThat(app.doChatWithReport(new LoveReportRequest("r1", null, "How can we communicate?", null, null, null)).title()).isEqualTo("Communication advice");
+        assertThat(app.doChatWithReport(new LoveReportRequest("r2", "gemini-2.5-flash-lite", "How can we communicate?", null, null, null)).suggestions())
+                .containsExactly("Listen carefully");
         verify(pro).call(any(Prompt.class));
         verify(flashLite).call(any(Prompt.class));
         verify(dashscope, never()).call(any(Prompt.class));
@@ -83,8 +83,8 @@ class LoveAppModelSwitchTest {
 
     @Test
     void invalidSelectionFailsBeforeAnyModelCall() {
-        assertThatIllegalArgumentException().isThrownBy(() -> app.doChat("你好", "a", "missing"))
-                .withMessageContaining("可用模型");
+        assertThatIllegalArgumentException().isThrownBy(() -> app.doChat("Hello", "a", "missing"))
+                .withMessageContaining("available models");
         assertThatIllegalArgumentException().isThrownBy(() -> com.hc.aiagenthyc.support.LoveAppTestFactory.create(clients,
                 MessageWindowChatMemory.builder().build(), templates, "missing"));
         for (ChatModel model : List.of(dashscope, pro, flashLite)) {
@@ -95,8 +95,8 @@ class LoveAppModelSwitchTest {
     @Test
     void allModelsRetainVerificationAdvisor() {
         for (String model : app.availableModels()) {
-            assertThatThrownBy(() -> app.doChat("测试违禁词", model, model))
-                    .isInstanceOf(com.hc.aiagenthyc.common.error.ChatException.class).hasMessageContaining("无法回答");
+            assertThatThrownBy(() -> app.doChat("test prohibited phrase", model, model))
+                    .isInstanceOf(com.hc.aiagenthyc.common.error.ChatException.class).hasMessageContaining("cannot be answered");
         }
         for (ChatModel model : List.of(dashscope, pro, flashLite)) {
             verify(model, never()).call(any(Prompt.class));

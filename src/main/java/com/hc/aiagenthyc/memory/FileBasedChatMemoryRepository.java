@@ -28,7 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 
 /**
- * 使用 Kryo 将 Spring AI 对话消息持久化到本地文件的仓库。
+ * Persists Spring AI conversation messages to local files using Kryo.
  */
 public final class FileBasedChatMemoryRepository implements ChatMemoryRepository {
 
@@ -44,6 +44,7 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
 
     private final ReentrantLock[] locks = new ReentrantLock[LOCK_STRIPES];
 
+    // Kryo instances are not thread-safe; each thread gets its own serializer.
     private final ThreadLocal<Kryo> kryo = ThreadLocal.withInitial(FileBasedChatMemoryRepository::createKryo);
 
     public FileBasedChatMemoryRepository(String directory) {
@@ -131,6 +132,7 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
                 rejectSymbolicLink(conversationFile);
             }
 
+            // Write beside the target, then replace it to avoid publishing a partially serialized window.
             temporaryFile = Files.createTempFile(this.baseDirectory,
                     conversationFile.getFileName().toString(), ".tmp");
             try (Output output = new Output(new BufferedOutputStream(Files.newOutputStream(temporaryFile,
@@ -194,6 +196,7 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
     }
 
     private Path conversationFile(String conversationId) {
+        // Encode IDs as filename-safe text so user input cannot introduce path separators.
         String encodedId = Base64.getUrlEncoder()
                 .withoutPadding()
                 .encodeToString(conversationId.getBytes(StandardCharsets.UTF_8));

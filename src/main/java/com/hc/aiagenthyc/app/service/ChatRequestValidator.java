@@ -20,17 +20,17 @@ public class ChatRequestValidator {
     }
     public void validate(LoveReportRequest request) {
         if (request == null || !validator.validate(request).isEmpty())
-            throw new ChatException(ErrorCode.INVALID_REQUEST, "请求字段无效，请检查 chatId、model、text、attachments、userName 和 relationshipStatus");
+            throw new ChatException(ErrorCode.INVALID_REQUEST, "Invalid request fields. Check chatId, model, text, attachments, userName, and relationshipStatus.");
     }
 
     public void validate(LoveChatRequest request) {
         if (request == null || !validator.validate(request).isEmpty())
-            throw new ChatException(ErrorCode.INVALID_REQUEST, "请求字段无效，请检查 chatId、model、text 和 attachments");
+            throw new ChatException(ErrorCode.INVALID_REQUEST, "Invalid request fields. Check chatId, model, text, and attachments.");
         if (request.chatId().getBytes(StandardCharsets.UTF_8).length > 128)
-            throw new ChatException(ErrorCode.INVALID_REQUEST, "chatId 不能超过 128 个 UTF-8 字节");
+            throw new ChatException(ErrorCode.INVALID_REQUEST, "chatId must not exceed 128 UTF-8 bytes");
         if (!StringUtils.hasText(request.text()) && request.attachments().isEmpty())
-            throw new ChatException(ErrorCode.EMPTY_CHAT_INPUT, "文字和附件不能同时为空");
+            throw new ChatException(ErrorCode.EMPTY_CHAT_INPUT, "Text and attachments cannot both be empty");
         if (request.attachments().size() > properties.getMaxPerMessage())
-            throw new ChatException(ErrorCode.INVALID_REQUEST, "每条消息最多上传一张图片");
+            throw new ChatException(ErrorCode.INVALID_REQUEST, "Upload at most one image per message");
     }
 }

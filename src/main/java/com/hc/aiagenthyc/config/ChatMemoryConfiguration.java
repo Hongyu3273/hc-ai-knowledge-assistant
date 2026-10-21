@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * LoveApp 聊天记忆相关 Bean 的集中配置。
+ * Central configuration for the chat-memory beans used by LoveApp.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(ChatMemoryProperties.class)
@@ -30,10 +30,12 @@ public class ChatMemoryConfiguration {
     public ChatMemory chatMemory(
             @Qualifier(REPOSITORY_BEAN_NAME) ChatMemoryRepository repository,
             ChatMemoryProperties properties) {
+        // This is a bounded context window, not a permanent transcript of every conversation turn.
         ChatMemory windowChatMemory = MessageWindowChatMemory.builder()
                 .chatMemoryRepository(repository)
                 .maxMessages(properties.maxMessages())
                 .build();
+        // Protect individual memory operations; ConversationExecutor protects the full read-call-save sequence.
         return new SynchronizedChatMemory(windowChatMemory);
     }
 }

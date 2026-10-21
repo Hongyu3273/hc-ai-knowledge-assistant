@@ -2,14 +2,14 @@ spring:
   application:
     name: ai-agent-hyc
   profiles:
-    # 本地默认启用 local；上传/CI 可覆盖：SPRING_PROFILES_ACTIVE=prod
+    # Use the local profile by default; override with SPRING_PROFILES_ACTIVE=prod for deployments or CI.
     default: local
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 11MB
   ai:
-    # 默认自动装配供应商；LoveApp 的业务模型由 app.love.model 选择
+    # Select the auto-configured chat provider; app.love.model selects the LoveApp default route.
     model:
       chat: dashscope
     ollama:
@@ -18,7 +18,7 @@ spring:
         options:
           model: qwen3-14b-local:latest
     dashscope:
-      # 真实 Key 写在 application-local.yml，或设置环境变量
+      # Provide real API keys in application-local.yml or through environment variables.
       api-key: ${AI_DASHSCOPE_API_KEY:}
       chat:
         options:
@@ -36,23 +36,25 @@ app:
     max-context-bytes: 31457280
     allowed-types: [image/jpeg, image/png, image/webp]
   love:
+    # Business route ID registered by LoveModelConfiguration, independent of the chat provider setting above.
     # dashscope / gemini-2.5-pro / gemini-2.5-flash-lite
     model: ${LOVE_APP_MODEL:dashscope}
   gemini:
+    # Enabling this adds both Gemini routes without replacing the DashScope chat provider.
     enabled: ${GEMINI_ENABLED:false}
     api-key: ${GEMINI_API_KEY:}
     pro-model: gemini-2.5-pro
     flash-lite-model: gemini-2.5-flash-lite
     timeout-ms: 120000
-    # 应用当前开放的输入能力；更换实际型号时必须重新确认。
+    # Input types exposed by this application; verify capabilities when changing the provider model.
     pro-inputs: [text, image]
     flash-lite-inputs: [text, image]
   chat-memory:
     directory: ${CHAT_MEMORY_DIR:${user.dir}/tmp/chat-memory}
     max-messages: ${CHAT_MEMORY_MAX_MESSAGES:10}
 
-# LangChain4j + DashScope（通义千问）
-# 文档：https://docs.langchain4j.dev/integrations/language-models/dashscope/
+# LangChain4j + DashScope Qwen
+# Documentation: https://docs.langchain4j.dev/integrations/language-models/dashscope/
 langchain4j:
   community:
     dashscope:
@@ -82,7 +84,7 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
-# 日志级别
+# Logging levels
 logging:
   level:
     com.hc.aiagenthyc.advisor.MyLoggerAdvisor: INFO

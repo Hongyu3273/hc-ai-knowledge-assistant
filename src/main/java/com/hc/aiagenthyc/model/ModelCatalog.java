@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.Set;
 
+/** Read-only registry of enabled chat routes, their input capabilities, and the default route. */
 @Component
 public class ModelCatalog {
     private final Map<String, ModelRoute> routes;
@@ -17,9 +18,11 @@ public class ModelCatalog {
                         @Value("${app.love.model:dashscope}") String defaultModel) {
         this.routes = Map.copyOf(routes);
         this.defaultModel = defaultModel;
+        // Fail at startup if configuration selects a route that was never registered.
         require(defaultModel);
     }
     public String resolve(String requested) {
+        // Only an omitted model uses the default; unknown IDs fail rather than silently falling back.
         String id = requested == null ? defaultModel : requested;
         require(id);
         return id;
@@ -27,11 +30,12 @@ public class ModelCatalog {
     public ModelRoute require(String id) {
         ModelRoute route = id == null ? null : routes.get(id);
         if (route == null) throw new ChatException(ErrorCode.MODEL_NOT_AVAILABLE,
-                "模型未启用或不存在；可用模型: " + routes.keySet());
+                "The model is disabled or does not exist; available models: " + routes.keySet());
         return route;
     }
     public Map<String, ModelRoute> routes() { return routes; }
     public CatalogView view() {
+        // Expose IDs and capabilities to clients without exposing provider clients or credentials.
         return new CatalogView(defaultModel, routes.entrySet().stream().sorted(Map.Entry.comparingByKey())
                 .map(e -> new ModelView(e.getKey(), e.getValue().supportedInputs())).toList());
     }

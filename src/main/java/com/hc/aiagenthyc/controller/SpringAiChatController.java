@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Spring AI Alibaba + 通义千问 示例接口。
- * 文档：https://java2ai.com/docs/overview
+ * Example endpoints using Spring AI Alibaba and DashScope Qwen.
+ * Documentation: https://java2ai.com/docs/overview
  */
 @RestController
 @RequestMapping("/ai")
@@ -19,15 +19,15 @@ public class SpringAiChatController {
 
     public SpringAiChatController(ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder
-                .defaultSystem("你是一个博学的智能聊天助手，请根据用户提问回答！")
+                .defaultSystem("You are a knowledgeable AI chat assistant. Answer the user's questions.")
                 .build();
     }
 
     /**
-     * 单轮对话：GET /api/ai/chat?message=你是谁
+     * Single-turn chat: GET /api/ai/chat?message=Hello
      */
     @GetMapping("/chat")
-    public String chat(@RequestParam(defaultValue = "你是谁？") String message) {
+    public String chat(@RequestParam(defaultValue = "Who are you?") String message) {
         return chatClient.prompt()
                 .user(message)
                 .call()
@@ -35,10 +35,10 @@ public class SpringAiChatController {
     }
 
     /**
-     * 覆盖本次调用参数：GET /api/ai/chat/creative?message=写一首短诗
+     * Override options for one call: GET /api/ai/chat/creative?message=Write+a+short+poem
      */
     @GetMapping("/chat/creative")
-    public String creativeChat(@RequestParam(defaultValue = "写一首关于春天的短诗") String message) {
+    public String creativeChat(@RequestParam(defaultValue = "Write a short poem about spring") String message) {
         return chatClient.prompt()
                 .user(message)
                 .options(DashScopeChatOptions.builder()

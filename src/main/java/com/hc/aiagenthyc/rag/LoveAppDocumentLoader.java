@@ -17,6 +17,7 @@ import java.util.List;
 
 
 
+/** Reads bundled Markdown sources into documents without embedding or indexing them. */
 @Component
 @Slf4j
 public class LoveAppDocumentLoader {
@@ -31,20 +32,22 @@ public class LoveAppDocumentLoader {
     public List<Document> loadMarkdown() {
         List<Document> allDocuments = new ArrayList<>();
         try {
+            // Resolve classpath resources so loading works from both an IDE and a packaged JAR.
             Resource[] resources = resourcePatternResolver.getResources("classpath*:document/*.md");
             for (Resource resource : resources) {
+                // Horizontal rules form document boundaries; code blocks and quotes are omitted.
                 MarkdownDocumentReaderConfig config = MarkdownDocumentReaderConfig.builder()
                         .withHorizontalRuleCreateDocument(true)
                         .withIncludeCodeBlock(false)
                         .withIncludeBlockquote(false)
-                        .withAdditionalMetadata("filename", "code.md")
+                        .withAdditionalMetadata("filename", resource.getFilename())
                         .build();
                 MarkdownDocumentReader reader = new MarkdownDocumentReader(resource, config);
                 allDocuments.addAll(reader.get());
 
             }
         } catch (IOException e) {
-            log.error("MarkDown 文档加载失败", e);
+            log.error("Failed to load Markdown documents", e);
             throw new RuntimeException();
         }
         return allDocuments;

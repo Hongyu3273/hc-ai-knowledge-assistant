@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.Assert;
 
-/** 只暴露命名 ChatClient，避免干扰 DashScope 的默认 ChatModel 自动装配。 */
+/** Expose a named ChatClient without changing DashScope ChatModel auto-configuration. */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = "app.gemini", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(GeminiProperties.class)
@@ -18,8 +18,8 @@ public class GeminiConfiguration {
 
     @Bean(destroyMethod = "close")
     public Client geminiApiClient(GeminiProperties properties) {
-        Assert.hasText(properties.getApiKey(), "启用 Gemini 时必须配置 GEMINI_API_KEY 或 app.gemini.api-key");
-        Assert.isTrue(properties.getTimeoutMs() > 0, "app.gemini.timeout-ms 必须大于 0");
+        Assert.hasText(properties.getApiKey(), "GEMINI_API_KEY or app.gemini.api-key must be configured when Gemini is enabled");
+        Assert.isTrue(properties.getTimeoutMs() > 0, "app.gemini.timeout-ms must be greater than 0");
         return Client.builder()
                 .vertexAI(false)
                 .apiKey(properties.getApiKey())
@@ -29,6 +29,8 @@ public class GeminiConfiguration {
 
     @Bean
     public ChatClient geminiChatClient(Client geminiApiClient) {
+        // Keep the Google ChatModel inside this client instead of publishing it as a ChatModel bean.
+        // LoveModelConfiguration registers the two Gemini routes explicitly.
         return ChatClient.builder(GoogleGenAiChatModel.builder()
                         .genAiClient(geminiApiClient)
                         .build())

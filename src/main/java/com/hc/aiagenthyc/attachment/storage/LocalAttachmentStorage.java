@@ -26,7 +26,7 @@ public class LocalAttachmentStorage implements AttachmentStorage {
             Files.createDirectories(root);
             if (Files.isSymbolicLink(root) || !Files.isDirectory(root)) throw new IOException();
         } catch (IOException e) {
-            throw new ChatException(ErrorCode.STORAGE_FAILURE, "无法初始化附件存储");
+            throw new ChatException(ErrorCode.STORAGE_FAILURE, "Unable to initialize attachment storage");
         }
     }
 
@@ -38,17 +38,17 @@ public class LocalAttachmentStorage implements AttachmentStorage {
             Files.createDirectory(staging);
             Files.write(staging.resolve("content"), content, StandardOpenOption.CREATE_NEW);
             mapper.writeValue(staging.resolve("metadata.json").toFile(), metadata);
-            // 完整目录一次发布，不暴露半写入的附件。
+            // Publish the complete directory so readers never see a partially written attachment.
             try { Files.move(staging, destination, StandardCopyOption.ATOMIC_MOVE); }
             catch (AtomicMoveNotSupportedException e) { Files.move(staging, destination); }
         } catch (IOException e) {
-            throw new ChatException(ErrorCode.STORAGE_FAILURE, "附件保存失败，请重试");
+            throw new ChatException(ErrorCode.STORAGE_FAILURE, "Failed to save the attachment. Please try again.");
         } finally {
             try {
                 Files.deleteIfExists(staging.resolve("content"));
                 Files.deleteIfExists(staging.resolve("metadata.json"));
                 Files.deleteIfExists(staging);
-            } catch (IOException ignored) { /* 不掩盖原始错误；未发布目录不对外可见。 */ }
+            } catch (IOException ignored) { /* Preserve the original failure; unpublished directories are not exposed to readers. */ }
         }
     }
 
@@ -88,6 +88,6 @@ public class LocalAttachmentStorage implements AttachmentStorage {
     }
 
     private static ChatException unavailable() {
-        return new ChatException(ErrorCode.ATTACHMENT_UNAVAILABLE, "附件不存在或不可用，请重新上传");
+        return new ChatException(ErrorCode.ATTACHMENT_UNAVAILABLE, "The attachment does not exist or is unavailable. Please upload it again.");
     }
 }

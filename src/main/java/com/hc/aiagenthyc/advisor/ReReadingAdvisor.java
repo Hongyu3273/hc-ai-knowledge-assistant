@@ -11,7 +11,7 @@ import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.util.Assert;
 
 /**
- * 使用 Re-Reading（Re2）策略增强用户问题，促使模型重新阅读问题后再作答。
+ * Applies the Re-Reading (Re2) strategy to encourage the model to reread the question before answering.
  */
 public final class ReReadingAdvisor implements BaseAdvisor {
 

@@ -8,10 +8,11 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * 保证同一 JVM 内针对同一会话的 ChatMemory 操作按顺序执行。
+ * Serializes individual ChatMemory operations for each conversation within one JVM.
  */
 public final class SynchronizedChatMemory implements ChatMemory {
 
+    // Locks cover one memory operation at a time, not an entire multi-step conversation turn.
     private static final int LOCK_STRIPES = 64;
 
     private final ChatMemory delegate;

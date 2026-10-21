@@ -14,9 +14,9 @@ import org.springframework.ai.chat.model.Generation;
 import reactor.core.publisher.Flux;
 
 /**
- * 记录用户最新一条消息和 AI 最终回复的日志 Advisor。
+ * Advisor that logs the latest user message and the final AI response.
  *
- * <p>{@code nextCall}/{@code nextStream} 之前相当于 before，响应返回之后相当于 after。</p>
+ * <p>Code before {@code nextCall}/{@code nextStream} runs before delegation; code after it handles the response.</p>
  */
 public final class MyLoggerAdvisor implements CallAdvisor, StreamAdvisor {
 
@@ -54,11 +54,11 @@ public final class MyLoggerAdvisor implements CallAdvisor, StreamAdvisor {
 
     private void logRequest(ChatClientRequest request) {
         String userText = request.prompt().getUserMessage().getText();
-        log.info("用户请求：{}", userText);
+        log.info("User request: {}", userText);
     }
 
     private void logResponse(ChatClientResponse response) {
-        log.info("AI 响应：{}", extractResponseText(response));
+        log.info("AI response: {}", extractResponseText(response));
     }
 
     private String extractResponseText(ChatClientResponse response) {

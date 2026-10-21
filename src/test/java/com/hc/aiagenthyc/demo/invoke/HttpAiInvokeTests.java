@@ -10,7 +10,7 @@ class HttpAiInvokeTests {
 
     @Test
     void preservesQuotesBackslashesUnicodeAndAllJsonControlCharacters() throws Exception {
-        StringBuilder message = new StringBuilder("你好 \"quoted\" \\ path");
+        StringBuilder message = new StringBuilder("Hello \"quoted\" \\ path");
         for (char character = 0; character < 32; character++) {
             message.append(character);
         }

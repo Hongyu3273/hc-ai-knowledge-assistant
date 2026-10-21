@@ -5,8 +5,8 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 
 /**
- * Spring AI Alibaba 调用通义千问的写法示例（需在 Spring 容器中注入 ChatModel）。
- * 实际 HTTP 入口见 {@link com.hc.aiagenthyc.controller.SpringAiChatController}。
+ * Example of calling Qwen through Spring AI Alibaba with a Spring-managed ChatModel.
+ * For HTTP endpoints, see {@link com.hc.aiagenthyc.controller.SpringAiChatController}.
  */
 public final class SpringAiInvoke {
 

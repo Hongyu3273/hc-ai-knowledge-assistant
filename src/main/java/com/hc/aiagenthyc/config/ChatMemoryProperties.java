@@ -4,10 +4,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.Assert;
 
 /**
- * LoveApp 聊天记忆配置。
+ * Configuration for the LoveApp conversation-memory window.
  *
- * @param directory 本地文件存储目录
- * @param maxMessages 每个会话最多保留的消息数
+ * @param directory directory for local conversation files
+ * @param maxMessages maximum number of messages retained per conversation
  */
 @ConfigurationProperties(prefix = "app.chat-memory")
 public record ChatMemoryProperties(String directory, int maxMessages) {
