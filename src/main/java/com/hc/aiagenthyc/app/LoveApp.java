@@ -16,6 +16,7 @@ import com.hc.aiagenthyc.memory.ConversationExecutor;
 import com.hc.aiagenthyc.model.ModelCatalog;
 import com.hc.aiagenthyc.model.ModelRoute;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -42,12 +43,14 @@ public class LoveApp {
     private final MultimodalMessageAssembler assembler;
     private final ConversationExecutor conversations;
     private final VectorStore loveAppVectorStore;
+    private final Advisor loveAppRagCloudAdvisor;
 
     public LoveApp(ModelCatalog catalog,
                    @Qualifier(ChatMemoryConfiguration.CHAT_MEMORY_BEAN_NAME) ChatMemory memory,
                    LovePromptTemplates templates, ChatRequestValidator validator,
                    MultimodalMessageAssembler assembler, ConversationExecutor conversations, ObjectMapper objectMapper,
-                   @Lazy @Qualifier("loveAppVectorStore") VectorStore loveAppVectorStore) {
+                   @Lazy @Qualifier("loveAppVectorStore") VectorStore loveAppVectorStore,
+                   @Qualifier("loveAppRagCloudAdvisor") Advisor loveAppRagCloudAdvisor) {
         this.objectMapper = objectMapper;
         this.catalog = catalog;
         this.memory = memory;
@@ -56,6 +59,7 @@ public class LoveApp {
         this.assembler = assembler;
         this.conversations = conversations;
         this.loveAppVectorStore = loveAppVectorStore;
+        this.loveAppRagCloudAdvisor = loveAppRagCloudAdvisor;
 
         // Routes sharing a provider client should share its configured copy.
         Map<ChatClient, ChatClient> businessClients = new IdentityHashMap<>();
@@ -155,6 +159,33 @@ public class LoveApp {
                 || report.suggestions().isEmpty() || report.suggestions().stream().anyMatch(s -> !StringUtils.hasText(s)))
             throw new IllegalStateException("Invalid report response");
         return report;
+    }
+
+    /** Uses cloud retrieval for this call and stores only the original question and answer. */
+    public String doChatWithRagCloud(String message, String chatId) {
+        LoveChatRequest request = new LoveChatRequest(chatId, null, message, List.of());
+        validator.validate(request);
+        ModelRoute route = clients.get(catalog.resolve(null));
+        return conversations.execute(chatId, () -> {
+            UserMessage stored = assembler.storedMessage(request, message);
+            var messages = assembler.assemble(memory.get(chatId), stored, route.supportedInputs());
+            String answer;
+            try {
+                answer = route.prompt()
+                        .messages(messages)
+                        .advisors(loveAppRagCloudAdvisor)
+                        .call()
+                        .content();
+                if (!StringUtils.hasText(answer)) throw new IllegalStateException("Empty model response");
+            } catch (ChatException e) {
+                throw e;
+            } catch (RuntimeException e) {
+                throw new ChatException(ErrorCode.MODEL_CALL_FAILED,
+                        "The cloud retrieval or model call failed. Please try again later.");
+            }
+            memory.add(chatId, List.of(stored, new AssistantMessage(answer)));
+            return answer;
+        });
     }
 
     /** Retrieves relationship guidance and calls the default model without storing retrieved text in chat history. */

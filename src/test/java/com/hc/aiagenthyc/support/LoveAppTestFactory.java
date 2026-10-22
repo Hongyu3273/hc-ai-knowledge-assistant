@@ -35,9 +35,17 @@ public final class LoveAppTestFactory {
     public static LoveApp create(Map<String, ModelRoute> routes, ChatMemory memory,
                                  LovePromptTemplates templates, String defaultModel,
                                  AttachmentService attachments, AttachmentProperties properties, VectorStore vectorStore) {
+        return create(routes, memory, templates, defaultModel, attachments, properties, vectorStore,
+                new com.hc.aiagenthyc.advisor.VerifyAdvisor());
+    }
+    public static LoveApp create(Map<String, ModelRoute> routes, ChatMemory memory,
+                                 LovePromptTemplates templates, String defaultModel,
+                                 AttachmentService attachments, AttachmentProperties properties, VectorStore vectorStore,
+                                 org.springframework.ai.chat.client.advisor.api.Advisor cloudAdvisor) {
         return new LoveApp(new ModelCatalog(routes, defaultModel), memory, templates,
                 new ChatRequestValidator(VALIDATORS.getValidator(), properties),
                 new MultimodalMessageAssembler(attachments, properties), new ConversationExecutor(),
-                new com.fasterxml.jackson.databind.ObjectMapper(), vectorStore);
+                new com.fasterxml.jackson.databind.ObjectMapper(), vectorStore,
+                cloudAdvisor);
     }
 }
