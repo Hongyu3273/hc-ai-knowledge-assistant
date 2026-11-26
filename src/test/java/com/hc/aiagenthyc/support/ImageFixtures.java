@@ -7,6 +7,14 @@ import java.io.ByteArrayOutputStream;
 /** Generates test images locally without user files or network downloads. */
 public final class ImageFixtures {
     private ImageFixtures() { }
+    /**
+     * Encodes a blank RGB image of the given size.
+     *
+     * @param format ImageIO format name, such as {@code png} or {@code jpg}
+     * @param width  width in pixels
+     * @param height height in pixels
+     * @return the encoded image bytes
+     */
     public static byte[] image(String format, int width, int height) throws Exception {
         var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         try (var output = new ByteArrayOutputStream()) {

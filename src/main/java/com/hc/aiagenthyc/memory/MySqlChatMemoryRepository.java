@@ -20,12 +20,19 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Stores each conversation's current memory window in MySQL. */
+/**
+ * Stores each conversation's current memory window in MySQL.
+ * Alternative to {@link FileBasedChatMemoryRepository}; it is not registered as a bean anywhere in the application.
+ * Expects a {@code chat_memory} table with a unique {@code conversation_id} column and a binary
+ * {@code messages} column holding the Kryo-serialized message list; this class does not create the table.
+ */
 public final class MySqlChatMemoryRepository implements ChatMemoryRepository {
 
     private final DataSource dataSource;
+    // Kryo instances are not thread-safe; each thread gets its own serializer.
     private final ThreadLocal<Kryo> kryo = ThreadLocal.withInitial(MySqlChatMemoryRepository::createKryo);
 
+    /** @param dataSource MySQL data source that contains the {@code chat_memory} table */
     public MySqlChatMemoryRepository(DataSource dataSource) {
         Assert.notNull(dataSource, "dataSource cannot be null");
         this.dataSource = dataSource;
@@ -65,6 +72,7 @@ public final class MySqlChatMemoryRepository implements ChatMemoryRepository {
         }
     }
 
+    /** Inserts or replaces the conversation's row with the given messages (MySQL upsert). */
     @Override
     public void saveAll(String conversationId, List<Message> messages) {
         validateConversationId(conversationId);
@@ -126,6 +134,8 @@ public final class MySqlChatMemoryRepository implements ChatMemoryRepository {
 
     private static Kryo createKryo() {
         Kryo kryo = new Kryo();
+        // Same settings as FileBasedChatMemoryRepository: Spring AI message classes are unregistered and
+        // some lack no-arg constructors.
         kryo.setRegistrationRequired(false);
         kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
         return kryo;

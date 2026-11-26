@@ -21,7 +21,7 @@ public class LangChain4jChatController {
     }
 
     /**
-     * GET /api/langchain4j/chat?message=Hello
+     * Single-turn chat without memory: GET /api/langchain4j/chat?message=Hello
      */
     @GetMapping("/chat")
     public String chat(@RequestParam(defaultValue = "Who are you?") String message) {

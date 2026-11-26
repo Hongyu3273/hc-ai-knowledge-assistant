@@ -12,6 +12,9 @@ import org.springframework.util.Assert;
 
 /**
  * Applies the Re-Reading (Re2) strategy to encourage the model to reread the question before answering.
+ *
+ * <p>The latest user message is replaced by the rendered template, which repeats the original text. The response
+ * is passed through unchanged. This advisor is not registered by the application's own chat clients.</p>
  */
 public final class ReReadingAdvisor implements BaseAdvisor {
 
@@ -24,10 +27,14 @@ public final class ReReadingAdvisor implements BaseAdvisor {
 
     private int order;
 
+    /** Creates the advisor with the default template, which states the question twice. */
     public ReReadingAdvisor() {
         this(DEFAULT_RE2_ADVISE_TEMPLATE);
     }
 
+    /**
+     * @param re2AdviseTemplate non-blank prompt template; {@code {re2_input_query}} is replaced with the user's text
+     */
     public ReReadingAdvisor(String re2AdviseTemplate) {
         Assert.hasText(re2AdviseTemplate, "re2AdviseTemplate must not be blank");
         this.re2AdviseTemplate = re2AdviseTemplate;
@@ -59,6 +66,7 @@ public final class ReReadingAdvisor implements BaseAdvisor {
         return this.order;
     }
 
+    /** Sets the advisor order (default {@code 0}) and returns this instance; call before the advisor is shared. */
     public ReReadingAdvisor withOrder(int order) {
         this.order = order;
         return this;

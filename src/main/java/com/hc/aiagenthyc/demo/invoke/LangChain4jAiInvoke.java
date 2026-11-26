@@ -9,6 +9,7 @@ import dev.langchain4j.model.chat.ChatModel;
  */
 public class LangChain4jAiInvoke {
 
+    /** Builds a {@code qwen-plus} model with {@code TestApiKey.API_KEY} and returns its answer to one message. */
     public static String callWithMessage(String userMessage) {
         ChatModel chatModel = QwenChatModel.builder()
                 .apiKey(TestApiKey.API_KEY)

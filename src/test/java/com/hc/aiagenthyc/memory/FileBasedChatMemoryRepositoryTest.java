@@ -23,6 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Unit test of {@link FileBasedChatMemoryRepository}, the Kryo file store behind conversation memory, on a temporary
+ * directory. Also covers {@link SynchronizedChatMemory} wrapped around a {@link MessageWindowChatMemory}.
+ */
 class FileBasedChatMemoryRepositoryTest {
 
     @TempDir
@@ -56,11 +60,13 @@ class FileBasedChatMemoryRepositoryTest {
     void keepsConversationFilesInsideTheConfiguredDirectory() throws Exception {
         FileBasedChatMemoryRepository repository =
                 new FileBasedChatMemoryRepository(this.tempDirectory.toString());
+        // Where a naive "<id>.kryo" file name would land for the ID "../escaped".
         Path escapedFile = this.tempDirectory.getParent().resolve("escaped.kryo");
 
         repository.saveAll("../escaped", List.of(new UserMessage("Security test")));
 
         assertFalse(Files.exists(escapedFile));
+        // IDs are Base64-encoded into file names, so the original ID still round-trips.
         assertEquals(List.of("../escaped"), repository.findConversationIds());
         try (var files = Files.list(this.tempDirectory)) {
             assertEquals(1, files.filter(path -> path.getFileName().toString().endsWith(".kryo")).count());
@@ -84,12 +90,17 @@ class FileBasedChatMemoryRepositoryTest {
                 memory.get("window").stream().map(Message::getText).toList());
     }
 
+    /**
+     * Each add is a read-modify-write of the whole window; SynchronizedChatMemory serializes them per conversation,
+     * so none of the 100 parallel adds overwrites another.
+     */
     @Test
     void concurrentAddsDoNotLoseMessages() throws Exception {
         FileBasedChatMemoryRepository repository =
                 new FileBasedChatMemoryRepository(this.tempDirectory.toString());
         ChatMemory memory = new SynchronizedChatMemory(MessageWindowChatMemory.builder()
                 .chatMemoryRepository(repository)
+                // Larger than the number of adds, so eviction cannot hide lost messages.
                 .maxMessages(200)
                 .build());
         ExecutorService executor = Executors.newFixedThreadPool(8);
@@ -100,6 +111,7 @@ class FileBasedChatMemoryRepositoryTest {
             for (int index = 0; index < 100; index++) {
                 int messageIndex = index;
                 futures.add(executor.submit(() -> {
+                    // Release all tasks together to maximise contention.
                     start.await();
                     memory.add("concurrent", new UserMessage("message-" + messageIndex));
                     return null;

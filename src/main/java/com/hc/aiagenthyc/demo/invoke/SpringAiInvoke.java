@@ -13,6 +13,13 @@ public final class SpringAiInvoke {
     private SpringAiInvoke() {
     }
 
+    /**
+     * Builds a one-off ChatClient around the given model and returns its answer to one message.
+     *
+     * @param chatModel ChatModel to call; the default options assume a DashScope model
+     * @param userMessage user text
+     * @return the answer text
+     */
     public static String callWithMessage(ChatModel chatModel, String userMessage) {
         ChatClient chatClient = ChatClient.builder(chatModel)
                 .defaultSystem("You are a helpful assistant.")

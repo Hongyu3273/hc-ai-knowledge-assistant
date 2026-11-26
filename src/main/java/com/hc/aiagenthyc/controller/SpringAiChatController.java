@@ -17,6 +17,7 @@ public class SpringAiChatController {
 
     private final ChatClient chatClient;
 
+    /** Uses Spring AI's auto-configured builder, backed by the provider selected by {@code spring.ai.model.chat}. */
     public SpringAiChatController(ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder
                 .defaultSystem("You are a knowledgeable AI chat assistant. Answer the user's questions.")

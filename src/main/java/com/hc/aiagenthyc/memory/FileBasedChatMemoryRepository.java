@@ -29,6 +29,9 @@ import java.util.stream.Stream;
 
 /**
  * Persists Spring AI conversation messages to local files using Kryo.
+ * Each conversation is one file, {@code <Base64url(conversationId)>.kryo}, holding the current message window that
+ * {@code MessageWindowChatMemory} saves in full on every update. Per-conversation lock stripes make each read, save and
+ * delete atomic within one JVM; files that are symbolic links are rejected.
  */
 public final class FileBasedChatMemoryRepository implements ChatMemoryRepository {
 
@@ -47,6 +50,12 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
     // Kryo instances are not thread-safe; each thread gets its own serializer.
     private final ThreadLocal<Kryo> kryo = ThreadLocal.withInitial(FileBasedChatMemoryRepository::createKryo);
 
+    /**
+     * Creates the storage directory if needed.
+     *
+     * @param directory directory for conversation files; must not be blank
+     * @throws IllegalStateException if the directory cannot be created or the path is not a directory
+     */
     public FileBasedChatMemoryRepository(String directory) {
         Assert.hasText(directory, "directory cannot be null or empty");
         this.baseDirectory = Path.of(directory).toAbsolutePath().normalize();
@@ -67,6 +76,7 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
         }
     }
 
+    /** Returns the decoded IDs of all conversation files, sorted; files with undecodable names are skipped. */
     @Override
     public List<String> findConversationIds() {
         try (Stream<Path> files = Files.list(this.baseDirectory)) {
@@ -84,6 +94,11 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
         }
     }
 
+    /**
+     * Returns the stored messages, or an empty list if the conversation has no file.
+     *
+     * @throws IllegalStateException if the file is a symbolic link, cannot be read or contains non-message objects
+     */
     @Override
     public List<Message> findByConversationId(String conversationId) {
         validateConversationId(conversationId);
@@ -117,6 +132,7 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
         }
     }
 
+    /** Replaces the conversation file with the given messages; the previous content is not merged. */
     @Override
     public void saveAll(String conversationId, List<Message> messages) {
         validateConversationId(conversationId);
@@ -133,6 +149,7 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
             }
 
             // Write beside the target, then replace it to avoid publishing a partially serialized window.
+            // The ".tmp" suffix keeps leftover temporary files out of findConversationIds.
             temporaryFile = Files.createTempFile(this.baseDirectory,
                     conversationFile.getFileName().toString(), ".tmp");
             try (Output output = new Output(new BufferedOutputStream(Files.newOutputStream(temporaryFile,
@@ -183,11 +200,14 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
 
     private static Kryo createKryo() {
         Kryo kryo = new Kryo();
+        // Spring AI message classes are not registered up front and some lack no-arg constructors,
+        // so allow unregistered classes and fall back to Objenesis instantiation.
         kryo.setRegistrationRequired(false);
         kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
         return kryo;
     }
 
+    /** Requires a non-blank ID of at most 128 UTF-8 bytes, which keeps the encoded file name short enough. */
     private void validateConversationId(String conversationId) {
         Assert.hasText(conversationId, "conversationId cannot be null or empty");
         int byteLength = conversationId.getBytes(StandardCharsets.UTF_8).length;
@@ -226,6 +246,7 @@ public final class FileBasedChatMemoryRepository implements ChatMemoryRepository
         }
     }
 
+    /** Replaces the target atomically where the file system supports it, otherwise with a plain replacing move. */
     private void moveAtomically(Path source, Path target) throws Exception {
         try {
             Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);

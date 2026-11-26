@@ -26,6 +26,13 @@ public class HttpAiInvoke {
     private static final String MODEL = "qwen-plus";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    /**
+     * Sends one chat-completion request authenticated with {@code TestApiKey.API_KEY}.
+     *
+     * @param userMessage user text; {@code null} is sent as an empty string
+     * @return the raw JSON response body, not just the answer text
+     * @throws IllegalStateException if the response status is not 2xx
+     */
     public static String callWithMessage(String userMessage) throws Exception {
         String requestBody = buildRequestBody(userMessage);
 
@@ -49,6 +56,7 @@ public class HttpAiInvoke {
         return response.body();
     }
 
+    /** Builds the JSON body with Jackson so the user text is escaped correctly; package-private for tests. */
     static String buildRequestBody(String userMessage) throws JsonProcessingException {
         return OBJECT_MAPPER.writeValueAsString(Map.of(
                 "model", MODEL,

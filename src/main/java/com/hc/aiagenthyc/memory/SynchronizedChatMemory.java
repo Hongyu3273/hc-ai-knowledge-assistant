@@ -9,6 +9,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Serializes individual ChatMemory operations for each conversation within one JVM.
+ * {@code MessageWindowChatMemory.add} reads, trims and saves the window, so two unsynchronized adds to the same
+ * conversation could lose messages. For the full read-call-save turn, see {@link ConversationExecutor}.
  */
 public final class SynchronizedChatMemory implements ChatMemory {
 
@@ -19,6 +21,7 @@ public final class SynchronizedChatMemory implements ChatMemory {
 
     private final ReentrantLock[] locks = new ReentrantLock[LOCK_STRIPES];
 
+    /** @param delegate memory whose operations are guarded; must not be {@code null} */
     public SynchronizedChatMemory(ChatMemory delegate) {
         Assert.notNull(delegate, "delegate cannot be null");
         this.delegate = delegate;

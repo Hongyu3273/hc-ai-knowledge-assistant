@@ -15,14 +15,20 @@ import com.alibaba.dashscope.utils.JsonUtils;
 import java.util.Arrays;
 import java.util.Collections;
 
+/**
+ * Example of calling a Qwen model through the native DashScope Java SDK and its multimodal conversation API.
+ * Sends a fixed system and user message; run {@link #main(String[])} to print the full result as JSON.
+ */
 public class SDKAiInvoke {
     // Use DashScope SDK version 2.12.0 or newer.
 
 
+    // The SDK reads this global base URL; this selects the Beijing region endpoint for the whole JVM.
     static {
         Constants.baseHttpApiUrl = "https://dashscope.aliyuncs.com/api/v1";
     }
 
+    /** Sends the fixed question "Who are you?" and returns the SDK result object. */
     public static MultiModalConversationResult callWithMessage() throws ApiException, NoApiKeyException, InputRequiredException, UploadFileException {
         MultiModalConversation conv = new MultiModalConversation();
         MultiModalMessage systemMsg = MultiModalMessage.builder()

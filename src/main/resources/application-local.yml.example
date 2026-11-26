@@ -11,8 +11,8 @@ spring:
 
 # Gemini uses a Google AI Studio API key. Set enabled to true and provide GEMINI_API_KEY.
 app:
-  love:
-    model: ${LOVE_APP_MODEL:dashscope}
+  assistant:
+    model: ${ASSISTANT_MODEL:dashscope}
   gemini:
     enabled: false
     api-key: ${GEMINI_API_KEY:}

@@ -17,6 +17,8 @@ import reactor.core.publisher.Flux;
  * Advisor that logs the latest user message and the final AI response.
  *
  * <p>Code before {@code nextCall}/{@code nextStream} runs before delegation; code after it handles the response.</p>
+ * <p>Both texts are written at INFO level, so this advisor exposes conversation content in the application log.
+ * {@code KnowledgeAssistant} registers it only when {@code app.assistant.log-advisor.enabled=true}.</p>
  */
 public final class MyLoggerAdvisor implements CallAdvisor, StreamAdvisor {
 
@@ -24,10 +26,12 @@ public final class MyLoggerAdvisor implements CallAdvisor, StreamAdvisor {
 
     private final int order;
 
+    /** Creates the advisor with order {@code 0}. */
     public MyLoggerAdvisor() {
         this(0);
     }
 
+    /** @param order advisor order; lower values run earlier in the chain */
     public MyLoggerAdvisor(int order) {
         this.order = order;
     }
@@ -48,6 +52,7 @@ public final class MyLoggerAdvisor implements CallAdvisor, StreamAdvisor {
 
         Flux<ChatClientResponse> responses = chain.nextStream(request);
 
+        // Chunks pass through unchanged; the aggregator logs the joined text once the stream completes.
         return new ChatClientMessageAggregator()
                 .aggregateChatClientResponse(responses, this::logResponse);
     }

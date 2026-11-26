@@ -41,6 +41,13 @@ build/
 .vscode/
 
 /tmp/chat-attachments/
+/tmp/rag-index/
 
 # Local Chinese Spring AI learning guide
 /docs/spring-ai-guide-zh.md
+
+# Personal interview question banks (the RAG knowledge base) are not published.
+# Put your own banks here to run the app and tests; see "Knowledge base" in README.md for the format.
+/src/main/resources/document/*.md
+# Retrieval evaluation questions labelled with question IDs from those personal banks; write your own for your banks.
+/src/test/resources/rag-eval/eval-set.json

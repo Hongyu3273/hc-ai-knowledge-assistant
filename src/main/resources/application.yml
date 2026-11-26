@@ -9,7 +9,7 @@ spring:
       max-file-size: 10MB
       max-request-size: 11MB
   ai:
-    # Select the auto-configured chat provider; app.love.model selects the LoveApp default route.
+    # Select the auto-configured chat provider; app.assistant.model selects the KnowledgeAssistant default route.
     model:
       chat: dashscope
     ollama:
@@ -35,10 +35,27 @@ app:
     max-per-message: 1
     max-context-bytes: 31457280
     allowed-types: [image/jpeg, image/png, image/webp]
-  love:
-    # Business route ID registered by LoveModelConfiguration, independent of the chat provider setting above.
+  assistant:
+    # Business route ID registered by AssistantModelConfiguration, independent of the chat provider setting above.
     # dashscope / gemini-2.5-pro / gemini-2.5-flash-lite
-    model: ${LOVE_APP_MODEL:dashscope}
+    model: ${ASSISTANT_MODEL:dashscope}
+    # Logs user text and answers through MyLoggerAdvisor; keep off unless debugging locally.
+    log-advisor:
+      enabled: ${ASSISTANT_LOG_ADVISOR_ENABLED:false}
+    rag:
+      # Passages sent to the model per question.
+      top-k: 5
+      # 0 accepts every passage. Raise only after checking the retrieval evaluation report.
+      similarity-threshold: ${RAG_SIMILARITY_THRESHOLD:0.0}
+      source-excerpt-chars: 200
+      index:
+        # Reuse the embedded index across restarts while documents and the embedding model are unchanged.
+        persist: true
+        directory: ${RAG_INDEX_DIR:${user.dir}/tmp/rag-index}
+      cloud:
+        # Creates the DashScope knowledge-base retriever and exposes POST /assistant/rag/cloud.
+        enabled: ${RAG_CLOUD_ENABLED:false}
+        index-name: ${RAG_CLOUD_INDEX_NAME:Interview Knowledge Base}
   gemini:
     # Enabling this adds both Gemini routes without replacing the DashScope chat provider.
     enabled: ${GEMINI_ENABLED:false}
@@ -84,6 +101,12 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+# Actuator: health and metrics under /api/actuator (custom meters are named hc.ai.*)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
 # Logging levels
 logging:
   level:

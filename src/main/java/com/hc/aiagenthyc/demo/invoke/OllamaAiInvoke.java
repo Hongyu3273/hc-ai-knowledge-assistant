@@ -31,9 +31,17 @@ public final class OllamaAiInvoke {
     private OllamaAiInvoke() {
     }
 
+    /**
+     * Sends one message to Ollama's {@code /api/chat} endpoint and returns the answer text.
+     *
+     * @param userMessage user text; {@code null} is sent as an empty string
+     * @return {@code message.content} from the response
+     * @throws IllegalStateException if the status is not 2xx or the response has no {@code message.content}
+     */
     public static String callWithMessage(String userMessage) throws Exception {
         String requestBody = OBJECT_MAPPER.writeValueAsString(Map.of(
                 "model", MODEL,
+                // Ollama streams by default; ask for one JSON object so the body can be parsed directly.
                 "stream", false,
                 "messages", List.of(
                         Map.of("role", "system", "content", "You are a knowledgeable AI chat assistant. Answer the user's questions."),
@@ -41,6 +49,7 @@ public final class OllamaAiInvoke {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(normalizeBaseUrl(BASE_URL) + "/api/chat"))
+                // Local models can take minutes to load and generate, so the timeout is much longer than for cloud APIs.
                 .timeout(Duration.ofMinutes(5))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
@@ -64,6 +73,7 @@ public final class OllamaAiInvoke {
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
+    /** Sends the command-line arguments joined by spaces, or a default question, and prints the answer. */
     public static void main(String[] args) {
         try {
             String message = args.length > 0 ? String.join(" ", args) : "Who are you?";
